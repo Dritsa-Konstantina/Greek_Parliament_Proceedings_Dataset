@@ -12,21 +12,21 @@ The dataset was created with the three following basic steps:
 
 The dataset consists of a csv file in UTF-8 encoding and includes the following columns of data:
 
-member_name: The official name of the parliament member that talked during a sitting.
+<b>member_name:</b> The official name of the parliament member that talked during a sitting.
 
-sitting_date: The date that the sitting took place. There are cases were more than one sittings took place at the same date.
+<b>sitting_date:</b> The date that the sitting took place. There are cases were more than one sittings took place at the same date.
 
 <b>parliamentary_period:</b> The name and/or number of the parliamentary period that the speech took place in. A parliamentary period includes multiple parliamentary sessions.
 
-parliamentary_session: The name and/or number of the parliamentary session that the speech took place in. A parliamentary session includes multiple parliamentary sittings.
+<b>parliamentary_session:</b> The name and/or number of the parliamentary session that the speech took place in. A parliamentary session includes multiple parliamentary sittings.
 
-parliamentary_sitting: The name and/or number of the parliamentary sitting that the speech took place in.
+<b>parliamentary_sitting:</b> The name and/or number of the parliamentary sitting that the speech took place in.
 
-political_party: The political party that the speaker belongs to.
+<b>political_party:</b> The political party that the speaker belongs to.
 
-speaker_info: Information about the speaker extracted from the text of the proceeding/sitting record that refers to the parliamentary role of the speaker such as Chairman of the Parliament, Finance Minister or similar.
+<b>speaker_info:</b> Information about the speaker extracted from the text of the proceeding/sitting record that refers to the parliamentary role of the speaker such as Chairman of the Parliament, Finance Minister or similar.
 
-speech: The speech that the member made during the sitting of the Greek Parliament.
+<b>speech:</b> The speech that the member made during the sitting of the Greek Parliament.
 
 Any fields that do not include information, due to omissions in the record files, are filled with a NaN value, apart from the speech field, which in such cases remains an empty string.
 
