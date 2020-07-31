@@ -8,20 +8,22 @@ import numpy as np
 import time
 from datetime import datetime as dt
 from argparse import ArgumentParser
+import pandas as pd
+import ast
 
 starttime = dt.now()
 
 #Cleaning and formatting speakers data
 def text_formatting(text):
-    text = re.sub("[():'’`΄‘]",' ', text)
-    text = re.sub('\t+' , ' ', text)
-    text = text.lstrip()
-    text = text.rstrip()
-    text = re.sub('\s\s+' , ' ', text)
-    text = re.sub('\s*(-|–)\s*' , '-', text)
+    text = re.sub("[():'’`΄‘]",' ', text)#-–
+    text = re.sub('\t+' , ' ', text) #replace one or more tabs with one space
+    text = text.lstrip() #remove leading spaces
+    text = text.rstrip() #remove trailing spaces
+    text = re.sub('\s\s+' , ' ', text) #replace more than one spaces with one space
+    text = re.sub('\s*(-|–)\s*' , '-', text) #fix dashes
     text = text.lower()
-    text = text.translate(str.maketrans('άέόώήίϊΐiύϋΰ','αεοωηιιιιυυυ'))
-    text = text.translate(str.maketrans('akebyolruxtvhmnz','ακεβυολρυχτνημνζ'))
+    text = text.translate(str.maketrans('άέόώήίϊΐiύϋΰ','αεοωηιιιιυυυ')) #remove accents
+    text = text.translate(str.maketrans('akebyolruxtvhmnz','ακεβυολρυχτνημνζ')) #convert english characters to greek
     return(text)
 
 def speaker_name_corrections(name):
@@ -48,6 +50,9 @@ def party_of_generic_reference(speaker):
         party = 'συνασπισμος ριζοσπαστικης αριστερας'
     elif 'αντιπολιτευσ' in speaker:
         party = 'αντιπολιτευση'
+    # elif any(c in speaker for c in ['ενας βουλευτης', 'πολλοι βουλευτες', 'ολοι οι παροντες βουλευτες',
+    #      'ολοι οι βουλευτες', 'μερικοι βουλευτες', 'βουλευτες', 'σ βουλευτης']):
+    #     party = 'βουλη'
     else:
         party = 'βουλη'
     return party
@@ -62,24 +67,24 @@ def separate_nickname_incomplete_parenthesis(speaker, speaker_nickname):
         rights = len(re.findall(right_parenthesis_regex,speaker))
     if (lefts-rights)>0:
         if incomplete_nickname_parenthesis.search(speaker):
-
+            # Keep separately the nickname of the speaker
             speaker_nickname = (incomplete_nickname_parenthesis.search(speaker)).group()
             speaker_nickname = text_formatting(speaker_nickname)
-            speaker = re.sub(incomplete_nickname_parenthesis, '', speaker)
+            speaker = re.sub(incomplete_nickname_parenthesis, '', speaker) #remove nickname
     return speaker, speaker_nickname
 
 # Keep separately the nickname of the speaker
 def separate_nickname(speaker, speaker_nickname):
     speaker_nickname = (caps_nickname_in_parenthesis.search(speaker)).group()
     speaker_nickname = text_formatting(speaker_nickname)
-    speaker = re.sub(caps_nickname_in_parenthesis, '', speaker)
+    speaker = re.sub(caps_nickname_in_parenthesis, '', speaker) #remove nickname
     return speaker, speaker_nickname
 
 
 # Keep separately the explanatory parenthesis text of the speaker
 def separate_explanatory_parenthesis(speaker):
     speaker_info = (text_in_parenthesis.search(speaker)).group()
-    speaker = re.sub(text_in_parenthesis, '', speaker)
+    speaker = re.sub(text_in_parenthesis, '', speaker) #remove (text in parenthesis)
     return speaker,speaker_info
 
 def format_speaker_info(speaker_info):
@@ -87,38 +92,85 @@ def format_speaker_info(speaker_info):
     speaker_info = speaker_info.replace('υφυπ.',' υφυπουργος ')
     speaker_info = speaker_info.replace('υπ.',' υπουργος ')
     speaker_info = speaker_info.replace('&',' και ')
-    speaker_info = re.sub('\s\s+' , ' ', speaker_info)
-    speaker_info = speaker_info.lstrip()
-    speaker_info = speaker_info.rstrip()
+    speaker_info = re.sub('\s\s+' , ' ', speaker_info) #replace more than one spaces with one space
+    speaker_info = speaker_info.lstrip() #remove leading spaces
+    speaker_info = speaker_info.rstrip() #remove trailing spaces
     return speaker_info
 
 # compare temp max with similarity of the member's name alternatives with the speaker name
 def compare_with_alternative_sim(speaker_name, member_name, member_surname, temp_max, greek_names):
 
     # each row in the greek_names data is unique concerning the first name of the row
+    # greek_names has only those names that have at least one alternative. so each line has at least two names
     for line in greek_names:
 
         name_list = (line.strip()).split(',')
 
         # if member name has alternatives
         if name_list[0]==member_name:
-
             # keep alternatives of the name
             name_list.remove(member_name)
 
             for alternative_name in name_list:
-                alternative_sim1 = jellyfish.jaro_winkler(speaker_name, alternative_name+' '+member_surname)
-                alternative_sim2 = jellyfish.jaro_winkler(speaker_name, member_surname + ' ' + alternative_name)
+                alternative_sim1 = jellyfish.jaro_winkler_similarity(speaker_name, alternative_name+' '+member_surname)
+                alternative_sim2 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname + ' ' + alternative_name)
                 temp_max = max(temp_max,alternative_sim1, alternative_sim2)
 
             break #if true, break the for loop and proceed to return temp pax
 
     return(temp_max)
 
-def compute_max_similarity(speaker_name, speaker_nickname, member_name_part):
+def get_gov(current_record_datetime):
 
-    member_surname = member_name_part.split(' ')[0]
-    member_name = member_name_part.split(' ')[2]
+    df_govs = pd.read_csv('../out_files/governments_1989onwards.csv', encoding='utf-8')
+
+    df_govs['date_from'] = pd.to_datetime(df_govs['date_from'])#.dt.date
+    df_govs['date_to'] = pd.to_datetime(df_govs['date_to'])#.dt.date
+    df_govs = df_govs.sort_values(by='date_from', ascending=True)
+    current_gov_df = df_govs.loc[(df_govs.date_from <= current_record_datetime) & (current_record_datetime < df_govs.date_to)]
+
+    if current_gov_df.shape[0] != 1:
+        print('problem with ', current_record_datetime)
+
+    item = current_gov_df.gov_name.iloc[0] + '(' + current_gov_df.date_from.iloc[0].strftime('%d/%m/%Y') +\
+           '-' + current_gov_df.date_to.iloc[0].strftime('%d/%m/%Y') + ')'
+
+    return([item])
+
+
+def keep_roles_at_date(roles, current_record_datetime):
+
+    new_roles = []
+
+    #assert type list
+    if type(roles) != list:
+        roles = ast.literal_eval(roles)
+
+    for role in roles:
+        role_name, role_dates = role.split('(')
+        role_start_date, role_end_date = role_dates.replace(')', '').split('-')
+        role_start_date = dt.strptime(role_start_date, '%d/%m/%Y')
+        role_end_date = dt.strptime(role_end_date, '%d/%m/%Y')
+        if role_start_date<=current_record_datetime<=role_end_date:
+            new_roles.append(role)
+
+    #if empty list
+    if not new_roles:
+        new_roles.append('βουλευτης')
+
+    return new_roles
+
+
+def compute_max_similarity(speaker_name, speaker_nickname, member_name_part):
+    # allages sto name
+
+    if ( '(' in member_name_part and len(member_name_part.split(' '))>3 ) or ( '(' not in member_name_part and len(member_name_part.split(' '))>2):
+        member_surname = member_name_part.split(' ')[0]
+        member_name = member_name_part.split(' ')[2]
+    else: # εξωκοινοβουλευτικος χωρις ονομα πατρος
+        member_surname = member_name_part.split(' ')[1]
+        member_name = member_name_part.split(' ')[0]
+
     temp_max = 0
 
     # put these transpositions in the beginning, before we remove '-'
@@ -137,15 +189,13 @@ def compute_max_similarity(speaker_name, speaker_nickname, member_name_part):
 
         # if member has more than one first names and one surname
         if '-' not in member_surname:
-
             # do the following for two first names
-            sim5 = jellyfish.jaro_winkler(speaker_name, member_name1+' '+member_surname)
-            sim6 = jellyfish.jaro_winkler(speaker_name, member_surname+' '+member_name1)
-            sim7 = jellyfish.jaro_winkler(speaker_name, member_name2+' '+member_surname)
-            sim8 = jellyfish.jaro_winkler(speaker_name, member_surname+' '+member_name2)
+            sim5 = jellyfish.jaro_winkler_similarity(speaker_name, member_name1+' '+member_surname)
+            sim6 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname+' '+member_name1)
+            sim7 = jellyfish.jaro_winkler_similarity(speaker_name, member_name2+' '+member_surname)
+            sim8 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname+' '+member_name2)
 
             temp_max = max(temp_max, sim5, sim6, sim7, sim8)
-
             # Extra comparisons for alternative names of members
             temp_max = compare_with_alternative_sim(speaker_name, member_name1, member_surname, temp_max, greek_names)
             temp_max = compare_with_alternative_sim(speaker_name, member_name2, member_surname, temp_max, greek_names)
@@ -153,12 +203,12 @@ def compute_max_similarity(speaker_name, speaker_nickname, member_name_part):
 
             # do the following extra for three first names
             # for example κουικ φιλιππου τερενς-σπενσερ-νικολαος
-
             if len(member_name.split('-'))==3:
-                sim9 = jellyfish.jaro_winkler(speaker_name, member_name3+' '+member_surname)
-                sim10 = jellyfish.jaro_winkler(speaker_name, member_surname+' '+member_name3)
+                sim9 = jellyfish.jaro_winkler_similarity(speaker_name, member_name3+' '+member_surname)
+                sim10 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname+' '+member_name3)
+                #den proxwraw sth sugkrish tou na exei duo apo ta tria onomata
+                # auto dinei alles 6 upoperiptwseis
                 temp_max = max(temp_max, sim9, sim10)
-
                 # Extra comparisons for alternative names of members
                 temp_max = compare_with_alternative_sim(speaker_name, member_name3, member_surname, temp_max,
                                                         greek_names)
@@ -166,16 +216,17 @@ def compute_max_similarity(speaker_name, speaker_nickname, member_name_part):
         else:
             # If member has more than one first names and two surnames, compare each one separately
             member_surname1,member_surname2=member_surname.split('-')
-            sim5 = jellyfish.jaro_winkler(speaker_name, member_name1+' '+member_surname1)
-            sim6 = jellyfish.jaro_winkler(speaker_name, member_surname1+' '+member_name1)
-            sim7 = jellyfish.jaro_winkler(speaker_name, member_name1+' '+member_surname2)
-            sim8 = jellyfish.jaro_winkler(speaker_name, member_surname2+' '+member_name1)
-            sim9 = jellyfish.jaro_winkler(speaker_name, member_name2+' '+member_surname1)
-            sim10 = jellyfish.jaro_winkler(speaker_name, member_surname1+' '+member_name2)
-            sim11 = jellyfish.jaro_winkler(speaker_name, member_name2+' '+member_surname2)
-            sim12 = jellyfish.jaro_winkler(speaker_name, member_surname2+' '+member_name2)
+            sim5 = jellyfish.jaro_winkler_similarity(speaker_name, member_name1+' '+member_surname1)
+            sim6 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname1+' '+member_name1)
+            sim7 = jellyfish.jaro_winkler_similarity(speaker_name, member_name1+' '+member_surname2)
+            sim8 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname2+' '+member_name1)
+            sim9 = jellyfish.jaro_winkler_similarity(speaker_name, member_name2+' '+member_surname1)
+            sim10 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname1+' '+member_name2)
+            sim11 = jellyfish.jaro_winkler_similarity(speaker_name, member_name2+' '+member_surname2)
+            sim12 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname2+' '+member_name2)
 
             temp_max = max(temp_max, sim5, sim6, sim7, sim8, sim9, sim10, sim11, sim12)
+            #there is no case with 3 first names and 2 last names, so we don't compute that
 
             # Extra comparisons for alternative names of members
             temp_max = compare_with_alternative_sim(speaker_name, member_name1, member_surname1, temp_max, greek_names)
@@ -186,10 +237,10 @@ def compute_max_similarity(speaker_name, speaker_nickname, member_name_part):
     # If member has one first name and two surnames
     elif '-' in member_surname:
         member_surname1,member_surname2=member_surname.split('-')
-        sim5 = jellyfish.jaro_winkler(speaker_name, member_name+' '+member_surname1)
-        sim6 = jellyfish.jaro_winkler(speaker_name, member_surname1+' '+member_name)
-        sim7 = jellyfish.jaro_winkler(speaker_name, member_name+' '+member_surname2)
-        sim8 = jellyfish.jaro_winkler(speaker_name, member_surname2+' '+member_name)
+        sim5 = jellyfish.jaro_winkler_similarity(speaker_name, member_name+' '+member_surname1)
+        sim6 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname1+' '+member_name)
+        sim7 = jellyfish.jaro_winkler_similarity(speaker_name, member_name+' '+member_surname2)
+        sim8 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname2+' '+member_name)
 
         temp_max = max(temp_max, sim5, sim6, sim7, sim8)
 
@@ -201,10 +252,10 @@ def compute_max_similarity(speaker_name, speaker_nickname, member_name_part):
         if lower_nickname_in_parenthesis.search(member_name_part) and speaker_nickname=='':
 
             member_nickname = re.sub ('[()]','',(lower_nickname_in_parenthesis.search(member_name_part)).group())
-            sim9 = jellyfish.jaro_winkler(speaker_name, member_nickname+' '+member_surname1)
-            sim10 = jellyfish.jaro_winkler(speaker_name, member_surname1+' '+member_nickname)
-            sim11 = jellyfish.jaro_winkler(speaker_name, member_nickname+' '+member_surname2)
-            sim12 = jellyfish.jaro_winkler(speaker_name, member_surname2+' '+member_nickname)
+            sim9 = jellyfish.jaro_winkler_similarity(speaker_name, member_nickname+' '+member_surname1)
+            sim10 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname1+' '+member_nickname)
+            sim11 = jellyfish.jaro_winkler_similarity(speaker_name, member_nickname+' '+member_surname2)
+            sim12 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname2+' '+member_nickname)
 
             temp_max = max(temp_max, sim9, sim10, sim11, sim12)
 
@@ -212,60 +263,72 @@ def compute_max_similarity(speaker_name, speaker_nickname, member_name_part):
     member_name = member_name.replace('-', ' ')
     member_surname = member_surname.replace('-', ' ')
 
-    #M ake comparisons of speaker with members' names and reversed members' names
-    sim1 = jellyfish.jaro_winkler(speaker_name, member_name+' '+member_surname)
-    sim2 = jellyfish.jaro_winkler(speaker_name, member_surname+' '+member_name)
+    #Make comparisons of speaker with members' names and reversed members' names
+    sim1 = jellyfish.jaro_winkler_similarity(speaker_name, member_name+' '+member_surname)
+    sim2 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname+' '+member_name)
     temp_max = max(temp_max,sim1,sim2)
 
     # Extra comparisons for alternative names of members
     temp_max = compare_with_alternative_sim(speaker_name, member_name, member_surname, temp_max, greek_names)
 
 
-    # Compare speaker with member's nickname and surname
+    #We compare speaker with member's nickname and surname
     if lower_nickname_in_parenthesis.search(member_name_part) and speaker_nickname=='':
 
         member_nickname = re.sub ('[()]','',(lower_nickname_in_parenthesis.search(member_name_part)).group())
-        sim3 = jellyfish.jaro_winkler(speaker_name, member_nickname+' '+member_surname)
-        sim4 = jellyfish.jaro_winkler(speaker_name, member_surname+' '+member_nickname)
+        sim3 = jellyfish.jaro_winkler_similarity(speaker_name, member_nickname+' '+member_surname)
+        sim4 = jellyfish.jaro_winkler_similarity(speaker_name, member_surname+' '+member_nickname)
 
         temp_max = max(temp_max, sim3, sim4)
 
     return temp_max
 
 
-# Use Example:
-# python member_speech_matcher.py -f '../_data/batch_0/' -o '../out_files/tell_all_batch_0.csv'
+#python member_speech_matcher.py -f '../_data/batch_0/' -o '../out_files/tell_all_batch_0.csv'
 
 parser = ArgumentParser()
 parser.add_argument("-f", "--data_folder",
                     help="relative path to folder of data batch", )
 parser.add_argument("-o", "--outpath",
                     help="out csv file relative path")
+parser.add_argument("-o2", "--outpath2",
+                    help="out csv file relative path2")
 args = parser.parse_args()
 datapath = args.data_folder
 f1_path = args.outpath
+f2_path = args.outpath2
+
+# datapath = "../_data/batch_test/"
+# f1_path = '../out_files/tell_all_outputs/tell_all_batch_test.csv'
 
 # Goal file with all members speeches
-f1 = open(f1_path, 'w+', encoding='utf-8', newline = '')
-f2 = open('../out_files/members_activity_1989onwards_with_gender.csv', 'r+', encoding='utf-8')
-member_reader = csv.reader(f2)
-next(member_reader) #skip headers
+f1 = open(f1_path, 'w+', encoding='utf-8', newline = '') #encoding for Greek
+
+
+members_df = pd.read_csv('../out_files/all_members_activity.csv', encoding='utf-8')
+# ['member_name', 'member_start_date', 'member_end_date',
+#        'political_party', 'administrative_region', 'gender', 'roles',
+#        'government_name'],
+
 fnames = open('../out_files/greek_names_alts_only.txt', 'r+', encoding='utf-8')
 greek_names = fnames.readlines()
+
 filenames = sorted([f for f in os.listdir(datapath) if not f.startswith('.')])
+
 filename_freqs = defaultdict(int)
 
 record_counter = 0
 
+#speaker_regex = re.compile(r"(^(\s*[Α-ΩΆ-Ώ]+)(\s+[Α-ΩΆ-Ώ]+)*\s*(\(.*?\))?\s*\:)")
+# added dash in regex to match names with dashes in between
 speaker_regex = re.compile(r"((\s*[Α-ΩΆ-ΏΪΫΪ́Ϋ́-]+)(\s+[Α-ΩΆ-ΏΪΫΪ́Ϋ́-]+)*\s*(\(.*?\))?\s*\:)")
 caps_nickname_in_parenthesis = re.compile(r"(\([Α-ΩΆ-ΏΪΫΪ́Ϋ́]+\))+") #(ΠΑΝΟΣ)
 lower_nickname_in_parenthesis = re.compile(r"(\([α-ω]{2,}\))") #(πανος)
 text_in_parenthesis = re.compile(r"(\(.*?\)){1}") #(Υπουργός Εσωτερικών)
-
 # Regex for both proedros or proedreuon
 proedr_regex = re.compile(
     r"(^(((Π+Ρ(Ο|Ό)+(Ε|Έ))|(Ρ(Ο|Ό)+(Ε|Έ)Δ)|(ΠΡ(Ε|Έ)(Ο|Ό))|(ΠΡ(Ο|Ό)Δ)|(Η ΠΡ(Ο|Ό)(Ε|Έ)ΔΡ)|(ΠΡ(Ε|Έ)Δ))|(ΠΡΟΣΩΡΙΝΗ ΠΡΟΕΔΡΟΣ)|(ΠΡΟΣΩΡΙΝΟΣ ΠΡΟΕΔΡΟΣ)))")
-
+# Regex for proedros only
 proedros_regex = re.compile(r"ΠΡ((Ο|Ό|(ΟΟ))(Ε|Έ)|((ΕΟ)|(ΈΟ)|(ΕΌ)|(ΈΌ)))ΔΡΟΣ")
 proedreuon_first_speaker = re.compile(r"((\s*[Α-ΩΆ-ΏΪΫΪ́Ϋ́-]+)(\s+\(([Α-ΩΆ-Ώα-ωά-ώϊϋΐΰΪΫΪ́Ϋ́-]\s*)+\))?\s*\:)$")
 general_member_regex = re.compile(r"((Β(Ο|Ό)(Υ|Ύ)(Ε|Έ)Λ)|(Β(Ο|Ό)(Υ|Ύ)Λ(Ε|Έ)(Υ|Ύ)?Τ[^(Α|Ά)]))")
@@ -276,9 +339,10 @@ sitting_terminated_regex = re.compile(r"λ(υ|ύ)εται\s+η\s+συνεδρ(ι
 
 csv_output = csv.writer(f1)
 
+# csv header
 csv_output.writerow(['member_name', 'sitting_date', 'parliamentary_period',
                      'parliamentary_session','parliamentary_sitting',
-                     'political_party', 'member_region', 'member_gender',
+                     'political_party', 'government', 'member_region', 'roles', 'member_gender',
                      'speaker_info', 'speech'])
 
 #Open a file in order to write down the rows with no files
@@ -289,43 +353,71 @@ prob_files = open('../out_files/files_with_content_problems_'+
 for filename in filenames:
 
     record_counter+=1
-    print("File "+str(record_counter)+' from '+ str(len(filenames)-1)+ ' '+filename)
+    print("File "+str(record_counter)+' from '+ str(len(filenames))+ ' '+filename)
 
     # Skip duplicate files
     new_name = '_'.join([p for p in filename.split('_') if p!=(filename.split('_')[1])])
 
     filename_freqs[new_name]+=1
     if filename_freqs[new_name]>1:
-        continue
+        continue #with next iteration of for loop
 
     name_parts_without_extension = (os.path.splitext(filename)[0]).split('_')
     record_date = name_parts_without_extension[0]
     record_year = record_date.split('-')[0].strip()
+    current_record_datetime = dt.strptime(record_date, '%Y-%m-%d')
+    current_gov = get_gov(current_record_datetime)
 
     name_parts_cleaned = [re.sub("[()-]", ' ', part) for part in name_parts_without_extension]
     record_period = re.sub(r"\s\s+",' ',name_parts_cleaned[2].strip())
     record_session = re.sub(r"\s\s+",' ',name_parts_cleaned[3].strip())
     record_sitting = re.sub(r"\s\s+",' ',name_parts_cleaned[4].strip())
 
-    f3 = open(os.path.join(datapath+filename), 'r', encoding='utf-8')
+    f3 = open(os.path.join(datapath+filename), 'r', encoding='utf-8') #encoding for Greek
     file_content = f3.read().replace('\n', '')
     file_content = re.sub("\s\s+" , " ", file_content)
 
+    # Creates a list of tuples e.g. (' ΠΡΟΕΔΡΕΥΩΝ (Βαΐτσης Αποστολάτος):', ' ΠΡΟΕΔΡΕΥΩΝ', '', '(Βαΐτσης Αποστολάτος)')
+    # old one below had problem with nicknames in between first and last name
+    # speakers_groups = re.findall(r"((\s*[Α-ΩΆ-ΏΪΫΪ́Ϋ́-]+)(\s+[Α-ΩΆ-ΏΪΫΪ́Ϋ́-]+)*\s*(\(.*?\))?\s*\:)", file_content)
     speakers_groups = re.findall(
         r"((\s*[Α-ΩΆ-ΏΪΫΪ́Ϋ́-]+)(\s+\([Α-ΩΆ-Ώα-ωά-ώϊϋΐΰΪΫΪ́Ϋ́-]+\))?(\s+[Α-ΩΆ-ΏΪΫΪ́Ϋ́]+)?(\s+[Α-ΩΆ-ΏΪΫΪ́Ϋ́-]+)*\s*(\(.*?\))?\s*\:)",
         file_content)
 
-
+    # many_speakers = speakers_groups[226][0]
+    # print(many_speakers)
+    # speakers_groups = re.findall(
+    #     r"((\s*[Α-ΩΆ-ΏΪΫΪ́Ϋ́-]+)(\s+\([Α-ΩΆ-Ώα-ωά-ώϊϋΐΰΪΫΪ́Ϋ́-]+\))?(\s+[Α-ΩΆ-ΏΪΫΪ́Ϋ́]+.)?(\s+[Α-ΩΆ-ΏΪΫΪ́Ϋ́-]+)*\s*(\(.*?\))?\s*\:)",
+    #     many_speakers)
+    # print(speakers_groups)
+    # if ('αποστολακη') in file_content.lower():
+    #     print(filename)
+    # continue
+    # Keep only first full match case of findall #μερκουρη
     speakers = [speaker[0] for speaker in speakers_groups]
+    # for s in speakers:
+    #     if 'μερκουρη' in s.lower():
+    #         print(s)
+    # print('speakers: ')
+    # print(speakers[0])
+    # print(speakers[1])
+    # print(speakers[2])
+    # print(speakers[3])
+    # print(speakers[4])
+    # break
 
     # Discard introductory text before first speaker
     # Use split with maxsplit number 1 in order to split at first occurrence
     try:
+        # print('Before: ',file_content[:100])
+        # print('***')
+        # print('first speaker: ', speakers[0])
         file_content = file_content.split(speakers[0], 1)[1]
-
+        # print('After: ', file_content[:100])
+        # print('***')
     except:
         prob_files.write(filename + " \n")
-        continue
+        continue # proceed to next iteration/filename
 
     for i in range(len(speakers)):
 
@@ -333,21 +425,40 @@ for filename in filenames:
         if i < (len(speakers)-1):
             speaker = speakers[i]
             speech,file_content = file_content.split(speakers[i+1], 1)
+            # print('speaker:',speaker)
+            # print('speech:', speech)
+            # time.sleep(600)
+            # if i==0:
+            #     print(speaker)
+            #     print(speech)
         else:
             speaker = speakers[i]
             speech = file_content
 
-        # special treatment for first speaker who is usually προεδρευων
+        # special treatment for first speaker who is usually proedreuon
         if i == 0:
             if proedreuon_first_speaker.search(speaker.strip()):
                 speaker = proedreuon_first_speaker.search(speaker.strip()).group()
+                # print('i==0:')
+                # print(speaker)
+
+
+
+        # if len(speaker)>100:
+        #     print(filename)
+        #     print(speaker)
+        #     print()
+        # print(speaker)
+        # print(speech)
+        # print('---------------')
 
         # remove parenthesis text which is usually descriptions of procedures
         speech = re.sub(text_in_parenthesis, " ", speech)
 
         #Clean speaker
-        speaker = speaker.strip()
-        speaker = re.sub("\s\s+" , " ", speaker)
+        speaker = speaker.strip() #remove spaces and newlines from beginning and end
+        speaker = re.sub("\s\s+" , " ", speaker) #replace more than one spaces with one space
+
 
         speaker_info=np.nan
         speaker_nickname=''
@@ -355,18 +466,20 @@ for filename in filenames:
         #in case the speaker name is like "ΠΡΟΕΔΡΕΥΩΝ (Παναγιώτης Ν. Κρητικός):"
         # or like ΠΡΟΣΩΡΙΝΟΣ ΠΡΟΕΔΡΟΣ (Ιωάννης Τραγάκης):
         if proedr_regex.search(speaker):
+            # print('in proedr regex')
 
             # Hand-picked wrong cases
             if any(mistaken in speaker for mistaken in ['ΤΗΛΕΦΩΝΟ', 'ΓΡΑΜΜΑΤΕΙΣ', 'ΠΡΟΕΚΟΠΗΣ']):
-                continue
+                continue # to next iteration/speaker
 
-            # For προεδρευων
+            # For proedreuon
             if not proedros_regex.search(speaker):
+
                 speaker_info = 'προεδρευων'
 
-            # For προεδρος
+            # For proedros
             else:
-
+                # if the person in proedros
                 if 'ΠΡΟΣΩΡΙΝ' in speaker:
                     speaker_info = 'προσωρινος προεδρος'
                 else:
@@ -379,12 +492,13 @@ for filename in filenames:
                 party = np.nan
                 speaker_gender = np.nan
                 speaker_region = np.nan
-                csv_output.writerow([speaker, record_date, record_period,
-                                     record_session, record_sitting, party,
-                                     speaker_region, speaker_gender,
+                roles = np.nan
+                csv_output.writerow([speaker, current_record_datetime.strftime('%d/%m/%Y'), record_period,
+                                     record_session, record_sitting, party, current_gov,
+                                     speaker_region, roles, speaker_gender,
                                      speaker_info, speech])
 
-                continue
+                continue # to next iteration/speaker
 
         if speaker.startswith('ΜΑΡΤΥΣ'):
             speaker = speaker.replace('ΜΑΡΤΥΣ','')
@@ -396,26 +510,27 @@ for filename in filenames:
                 party = np.nan
                 speaker_gender = np.nan
                 speaker_region = np.nan
-                csv_output.writerow([speaker, record_date, record_period,
-                                     record_session, record_sitting, party,
-                                     speaker_region, speaker_gender,
+                roles = np.nan
+                csv_output.writerow([speaker, current_record_datetime.strftime('%d/%m/%Y'), record_period,
+                                     record_session, record_sitting, party, current_gov,
+                                     speaker_region, roles, speaker_gender,
                                      speaker_info, speech])
 
-                continue
+                continue # to next iteration/speaker
 
         if general_member_regex.search(speaker):
             speaker = (re.sub("[():'’`΄‘.]", '', speaker)).lower()
             speaker = speaker.translate(str.maketrans('άέόώήίϊΐiύϋΰ', 'αεοωηιιιιυυυ'))
             if 'εφηβοι' in speaker:
-                continue
+                continue # to next speaker
             else:
                 party = party_of_generic_reference(speaker)
                 speaker = np.nan
                 speaker_gender = np.nan
                 speaker_region = np.nan
 
-                # When the closing speech is assigned to generic members instead of the προεδρευων
-                # which is usually the case when προεδρευων is not mentioned as the closing speaker
+                # When the closing speech is assigned to generic members instead of the proedreuon
+                # which is usually the case when proedreuon is not mentioned as the closing speaker
                 # we remove the standard closing talk of the sitting from the generic members speech
                 if sitting_terminated_regex.search(speech):
                     speech = \
@@ -423,68 +538,122 @@ for filename in filenames:
                              speech)[0]
 
                 speaker_info = 'βουλευτης/ες'
-                csv_output.writerow([speaker, record_date, record_period,
-                                     record_session, record_sitting, party,
-                                     speaker_region, speaker_gender,
+                roles = np.nan
+                csv_output.writerow([speaker, current_record_datetime.strftime('%d/%m/%Y'), record_period,
+                                     record_session, record_sitting, party, current_gov,
+                                     speaker_region, roles, speaker_gender,
                                      speaker_info, speech])
+
                 continue
 
+        # continue
         if speaker!='':
 
-            speaker, speaker_nickname = separate_nickname_incomplete_parenthesis(speaker,speaker_nickname)
+            # if True:
+            if len(speaker)<200: # exclude very large malformed text that is not a speaker
+                speaker, speaker_nickname = separate_nickname_incomplete_parenthesis(speaker,speaker_nickname)
 
-            if caps_nickname_in_parenthesis.search(speaker):
-                speaker, speaker_nickname = separate_nickname(speaker,speaker_nickname)
+                if caps_nickname_in_parenthesis.search(speaker):
+                    speaker, speaker_nickname = separate_nickname(speaker,speaker_nickname)
 
-            if text_in_parenthesis.search(speaker):
-                speaker, speaker_info = separate_explanatory_parenthesis(speaker)
-                speaker_info = format_speaker_info(speaker_info)
+                if text_in_parenthesis.search(speaker):
+                    speaker, speaker_info = separate_explanatory_parenthesis(speaker)
+                    speaker_info = format_speaker_info(speaker_info)
 
-            speaker_name = text_formatting(speaker)
-            speaker_name = speaker_name_corrections(speaker_name)
+                speaker_name = text_formatting(speaker)
+                speaker_name = speaker_name_corrections(speaker_name)
+                # print(speaker_name)
+                # Remove 1-2 letter characters
+                speaker_name = ' '.join( [word for word in speaker_name.split(' ') if len(word)>2] )
 
-            # Remove 1-2 letter characters
-            speaker_name = ' '.join( [word for word in speaker_name.split(' ') if len(word)>2] )
+                max_sim = 0
 
-            max_sim = 0
+                for index, row in members_df.iterrows():
+                    # print(row)
 
-            f2.seek(0)
-            next(member_reader)  # skip headers
+                    member_start_date = dt.strptime(row.member_start_date, '%Y-%m-%d')
+                    member_end_date = dt.strptime(row.member_end_date, '%Y-%m-%d')
 
-            for member_line in member_reader:
 
-                member_start_date = dt.strptime(member_line[1], '%Y-%m-%d')
-                member_end_date = dt.strptime(member_line[2], '%Y-%m-%d')
+                    if member_start_date <= current_record_datetime <= member_end_date:
 
-                this_record_date = dt.strptime(record_date, '%Y-%m-%d')
+                        member_name_part = row.member_name
 
-                if member_start_date <= this_record_date <= member_end_date:
+    #                        if len(member_name_part.split('-'))>2:
+    #                            print(member_name_part)
+                        member_party = row.political_party
+                        member_region = row.administrative_region
+                        member_gender = row.gender
+                        member_gov = row.government_name
+                        # print(type(member_gov))
+                        # print(type(row.roles))
+                        # time.sleep(10)
+                        roles = ast.literal_eval(row.roles)
 
-                    member_name_part=member_line[0]
-                    member_party = member_line[3]
-                    member_region = member_line[4]
-                    member_gender = member_line[5]
+                        temp_max = compute_max_similarity(speaker_name, speaker_nickname, member_name_part)
 
-                    temp_max = compute_max_similarity(speaker_name, speaker_nickname, member_name_part)
+                        if temp_max>max_sim:
+                            max_sim=temp_max
+                            max_member_name_part = member_name_part
+                            max_member_party = member_party
+                            max_member_region = member_region
+                            max_member_gender = member_gender
+                            max_member_roles = roles
 
-                    if temp_max>max_sim:
-                        max_sim=temp_max
-                        max_member_name_part = member_name_part
-                        max_member_party = member_party
-                        max_member_region = member_region
-                        max_member_gender = member_gender
+                if max_sim>0.95:
 
-            if max_sim>0.95:
-                csv_output.writerow([max_member_name_part, record_date, record_period,
-                                     record_session, record_sitting, max_member_party,
-                                     max_member_region, max_member_gender,
-                                     speaker_info, speech])
+                    max_member_roles = keep_roles_at_date(max_member_roles, current_record_datetime)
+
+                    csv_output.writerow([max_member_name_part, current_record_datetime.strftime('%d/%m/%Y'),
+                                         record_period, record_session, record_sitting, max_member_party,
+                                         current_gov, max_member_region, max_member_roles, max_member_gender,
+                                         speaker_info, speech])
+
+                    #print(speaker_name,'---',max_member_name_part,'--->', max_sim)
+                #elif max_sim<=0.95 and max_sim>=0.93:
+                    #print(speaker_name,'---',max_member_name_part,'--->', max_sim)
+                    #csv_output.writerow((speaker_name+'---'+max_member_name_part+'--->'+str(max_sim),'1'))
 
     f3.close()
 
+
 prob_files.close()
 f1.close()
-f2.close()
+
+# f1_path = '../out_files/tell_all_batch_test.csv'
+df = pd.read_csv(f1_path, encoding='utf-8')
+
+# Remove in period column the string part '-presided-parliamentary-republic+'
+df['parliamentary_period'].replace({"-presided-parliamentary-republic_": '_'}, inplace=True, regex=True)
+
+# Correct order of sitting date column
+df['sitting_date'].replace({"-presided-parliamentary-republic_": '_'}, inplace=True, regex=True)
+
+
+if (df[df.apply(lambda r: r.str.contains('presided').any(), axis=1)]).shape[0] ==0:
+    print('Check 3 ok')
+else:
+    print('String \'presided\' is still somewhere in the data')
+
+# Replace date '93 with 1993
+df['parliamentary_session'].replace({"'": '19'}, inplace=True, regex=True)
+
+# Check if members with nan name have nan roles
+mask = ((df.member_name.isnull()))
+if str(set(df.loc[mask, 'roles'].to_list())) == '{nan}':
+    print('Check 1 ok')
+else:
+    print('Roles column of one or more nan member names are not nan')
+
+# Check if members with filled name have not nan roles
+mask = ((df.member_name.notnull()))
+if np.nan not in (df.loc[mask, 'roles'].to_list()):
+# if np.isnan(df.loc[mask, 'roles'].to_list()).any():
+    print('Check 2 ok')
+else:
+    print('Entries with nan roles have filled member names when role should be \'βουλευτης\'')
+
+df.to_csv(f2_path, encoding='utf-8', index=False, na_rep=np.nan)
 
 endtime = dt.now()
 print('Comparison lasted from '+str(starttime)+' until '+str(endtime)+'.')
