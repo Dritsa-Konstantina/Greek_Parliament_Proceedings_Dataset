@@ -1,4 +1,5 @@
 import re
+import csv
 import pandas as pd
 
 with open('../out_files/female_names_alternatives_gr.txt', 'r+', encoding = 'utf-8') as f1,\
@@ -13,7 +14,6 @@ with open('../out_files/female_names_alternatives_gr.txt', 'r+', encoding = 'utf
                      'ροβερτος', 'μουσταφα', 'κλεων', 'παρισης', 'παυσανιας',
                       'μεχμετ', 'αμετ', 'μπουρχαν', 'πανουργιας', 'γιανης',
                       'ιλχαν', 'πυθαγορας', 'φραγκλινος', 'ισμαηλ', 'θαλασσινος'])
-
     female_list.extend(['ελεωνορα', 'κρινιω', 'ιωαννετα', 'σουλτανα', 'ηρω',
                        'συλβα', 'χρυσουλα', 'ελισσαβετ', 'βιργινια', 'ροδουλα',
                         'καλλιοπη', 'γεσθημανη', 'φερονικη', 'χρυση', 'ολυμπια',
@@ -23,10 +23,10 @@ with open('../out_files/female_names_alternatives_gr.txt', 'r+', encoding = 'utf
     female_list = list(filter(None, female_list))
     male_list = list(filter(None, male_list))
 
-    #keep names used for both males and females
+    #keep names used for bot males and females
     unisex_names = list(set(male_list).intersection(female_list))
 
-    df = pd.read_csv('../out_files/members_activity_1989onwards.csv')
+    df = pd.read_csv('../out_files/members_activity_1989onwards_latest.csv')
 
     df['gender']=''
 

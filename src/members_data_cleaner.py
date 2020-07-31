@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
-from datetime import timedelta
+import datetime
+from datetime import timedelta, date
 import pandas as pd
 import numpy as np
 
@@ -30,7 +31,7 @@ def party_formatting(party):
     elif party=='ΛΑ.Ο.Σ.':
         party= 'λαικος ορθοδοξος συναγερμος'
     elif party=='ΛΑΪΚΟΣΣΥΝΔΕΣΜΟΣ-ΧΡΥΣΗΑΥΓΗ':
-        party='λαικος συνδεσος - χρυση αυγη'
+        party='λαικος συνδεσμος - χρυση αυγη'
     elif party=='ΚΟΜΜΟΥΝΙΣΤΙΚΟΚΟΜΜΑΕΛΛΑΔΑΣ':
         party='κομμουνιστικο κομμα ελλαδας'
     elif party=='Κ.Κ.Εσ':
@@ -68,18 +69,19 @@ def party_formatting(party):
     elif party=='ΜέΡΑ25':
         party='μετωπο ευρωπαικης ρεαλιστικης ανυπακοης (μερα25)'
     else:
-        pass;
+        print('Party not matched to existing list ', party)
     return party
 
 def name_formatting(name):
 
     name = re.sub(r"(\s*-\s*)|(\sή\s)",'-', name) #when people have two surnames or two names, we glue them together with '-' in the middle
-    name = name.translate(str.maketrans('άΆέΈόΌώΏήΉίΊϊΐύΎϋΰ','αΑεΕοΟωΩηΗιΙιιυΥυυ'))
-    name = re.sub(r"\t+" , " ", name)
-    name = re.sub(r"΄", "", name)
-    name = re.sub(r"\s\s+" , " ", name)
-    name = re.sub(r"(συζ.\s)",'συζ.', name)
+    name = name.translate(str.maketrans('άΆέΈόΌώΏήΉίΊϊΐύΎϋΰ','αΑεΕοΟωΩηΗιΙιιυΥυυ')) #remove accents
+    name = re.sub(r"\t+" , " ", name) #replace tabs with space
+    name = re.sub(r"΄", "", name)  # replace accents with empty string
+    name = re.sub(r"\s\s+" , " ", name) #replace more than one spaces with one space
+    name = re.sub(r"(συζ.\s)",'συζ.', name) #remove space between συζ. and the name of the husband
     name = re.sub("μαρια γλυκερια",'μαρια-γλυκερια', name)
+    name = re.sub("σουκουλη-βιλιαλη δημητριου μαρια ελενη \(μαριλενα\)",'σουκουλη-βιλιαλη δημητριου μαρια-ελενη (μαριλενα)', name)
     name = re.sub("χατζη χαβουζ γκαληπ",'χατζη-χαβουζ-γκαληπ', name)
     name = re.sub("μακρη θεοδωρου",'μακρη-θεοδωρου', name)
     name = re.sub("καρα γιουσουφ",'καρα-γιουσουφ', name)
@@ -87,7 +89,6 @@ def name_formatting(name):
     name = re.sub("σαδικ αμετ αμετ σαδηκ",'σαδικ αμετ αμετ', name)
     name = re.sub('ακριτα χα λουκη συλβα-καιτη','ακριτα συζ.λουκη συλβα-καιτη', name)
     name = re.sub('ιωανννης','ιωαννης', name)
-
     # specific correction missing father's name
     if name == 'βαγενα-κηλαηδονη αννα':
         name = 'βαγενα-κηλαηδονη γεωργιου αννα'
@@ -97,15 +98,15 @@ def name_formatting(name):
         name = 'ληναιος-μητυληναιος γεωργιου στεφανος (διονυσιος)'
     if name == 'βεττα καλλιοπη':
         name = 'βεττα χχχχχχχ καλλιοπη'
-    name = name.rstrip()
+    name = name.rstrip() #remove trailing space from string
     return name
 
 def region_formatting(region):
-    region = (region.lower()).translate(str.maketrans('άέόώήίϊΐiύϋΰ','αεοωηιιιιυυυ'))
-    region = re.sub(r"\t+" , " ", region)
-    region = re.sub(r"΄", " ", region)
-    region = re.sub(r"\s\s+" , " ", region)
-    region = region.rstrip()
+    region = (region.lower()).translate(str.maketrans('άέόώήίϊΐiύϋΰ','αεοωηιιιιυυυ')) #remove accents
+    region = re.sub(r"\t+" , " ", region) #replace tabs with space
+    region = re.sub(r"΄", " ", region)  # replace accents with space
+    region = re.sub(r"\s\s+" , " ", region) #replace more than one spaces with one space
+    region = region.rstrip() #remove trailing space from string
     if region=="α'θεσσαλονικης":
         region= "α' θεσσαλονικης"
     elif region=="α'αθηνων":
@@ -133,16 +134,17 @@ def region_formatting(region):
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
-f = open('../out_files/original_members_data.csv', 'r+', encoding='utf-8')
 
-df = pd.read_csv(f, encoding='utf-8', sep=',', header=None)
+df = pd.read_csv('../out_files/original_members_data_latest.csv', encoding='utf-8', header=None,
+                 names = ['no', 'member_name', 'period_date_range', 'event_date',
+         'administrative_region', 'political_party',  'event_description'])
 
-#rename columns
-df.columns = ['no', 'member_name', 'period_date_range', 'event_date',
-         'administrative_region', 'political_party',  'event_description']
+# print(df.head())
 
 # remove lines that contain "NO DATA"
 df = df[~df['period_date_range'].str.contains("NO DATA")]
+
+# df.drop('administrative_region', axis=1, inplace=True)
 
 # remove characters from period
 df['period_date_range'] = df['period_date_range'].\
@@ -157,6 +159,7 @@ df['period_start_date'] = pd.to_datetime(df['period_start_date'],
 df['period_end_date'] = dates[1]
 df['period_end_date'] = pd.to_datetime(df['period_end_date'],
                                          format='%d/%m/%Y')
+
 # drop old column
 df.drop(columns=['period_date_range'], inplace=True)
 
@@ -179,31 +182,40 @@ df['administrative_region'] = df['administrative_region'].apply(region_formattin
 
 new_dfrows_list = []
 
-start_cases = ['aντικατέστησε',
+# οι παρακατω λιστες αναφερονται στο πώς μπορεί να ξεκινάει η περιγραφή του event
+
+#παντα με εναν απο τους δυο τροπους ξεκιναει ενας βουλευτης τη θητεια του
+#τα παρακατω χρησιμοποιούνται μόνο για εναρξη θητειας
+#μπορει να ειναι μονο στο πρωτο γεγονος της κοινοβουλευτικης περιοδου καθε βουλευτη
+#οποτε ειναι μονο στη θεση 0 καθε subdf
+start_cases = ['aντικατέστησε', #π.χ. aντικατέστησε:δούρουειρήνη(ρένα)αθανασίου(λόγω:παραίτησηςαπότοβουλευτικόαξίωμα)
                'εκλογής',
                ]
 
+# οταν καποιος απεβιωσε ή παραιτήθηκε ή συνέβη έκπτωση πολιτικού αξιώματος
 end_cases = ['παραίτησηςαπότοβουλευτικόαξίωμα',
              'απεβίωσε',
              'έκπτωσηςβουλευτικούαξιώματος',
              'δολοφονήθηκε',
              ]
 
-change_party_cases = ['προσχώρησης/επανένταξης',
+# περιπτώσεις που αλλάζει κομμα ενας βουλευτης
+change_party_cases = ['προσχώρησης/επανένταξης', #αλλαζει κομμα
                       'προσχώρηση',
-                      'ανεξαρτητοποίηση',
+                      'ανεξαρτητοποίηση', # εγινε ανεξαρτητοι (εκτος κομματος)
                       'προσχωρησηστηνκ.ο.τησνεασδημοκρατιας',
-                      'ετέθηεκτός',
-                      'διεγράφη',
+                      'ετέθηεκτός', # εγινε ανεξαρτητοι (εκτος κομματος)]
+                      'διεγράφη', #εγινε ανεξαρτητοι (εκτος κομματος)]
                       ]
-error_cases = []
+
+error_cases=[]
 
 # for each starting period of a parliament member
 for id, subdf in df.groupby(['no','period_start_date']):
 
-
     # remove specific error in data for 'πλακιωτάκης ιωσήφ ιωάννης'
-    if id==('No:1435', pd.Timestamp('2015-09-20 00:00:00')):
+    if subdf.member_name.iloc[0] == 'Πλακιωτάκης Ιωσήφ Ιωάννης' and \
+            id[-1] == pd.Timestamp('2015-09-20 00:00:00'):
         subdf = subdf[subdf['event_date'] != pd.to_datetime('2019-07-07')]
 
     rows_num = subdf.shape[0]
@@ -235,8 +247,12 @@ for id, subdf in df.groupby(['no','period_start_date']):
 
     else:
 
-        for i in range(rows_num-1,-1,-1):
+        # we iterate through rows inversely over time
+        for i in range(rows_num-1,-1,-1): # e.g. 4 rows iterates from index 3 to 0
 
+            # απεβιωσε, παραιτηθηκε
+            # τοτε προηγειται γεονος απο τα start_cases ή change_party_cases)
+            # και απο αυτα θα παρουμε start_date
             if any((subdf.iloc[i]['event_description'].lower()).startswith(e) for e in end_cases):
 
                 member_end_date = subdf.iloc[i]['event_date']
@@ -277,12 +293,14 @@ for id, subdf in df.groupby(['no','period_start_date']):
                 end_follows = False
                 change_follows = True
 
+            # εκλογης, αντικατεστησε
             elif any((subdf.iloc[i]['event_description'].lower()).startswith(s) for s in start_cases):
                 member_start_date = subdf.iloc[i]['event_date']
                 administrative_region = subdf.iloc[i]['administrative_region']
 
 
-                if end_follows:
+                if end_follows: #political party and member_end_date have been declared
+                    # member_end_date exei dw8ei hdh an akolou8ei telos
                     new_dfrows_list.append({'member_name': member_name,
                                           'member_start_date': member_start_date,
                                           'member_end_date': member_end_date,
@@ -314,18 +332,15 @@ for id, subdf in df.groupby(['no','period_start_date']):
                           ' around date '+str(subdf.iloc[i]['period_end_date']))
 
 
-new_df = pd.DataFrame(new_dfrows_list,
-                      columns=['member_name', 'member_start_date',
-                               'member_end_date', 'political_party',
-                               'administrative_region',
-                               ])
+new_df = pd.DataFrame(new_dfrows_list, columns=['member_name', 'member_start_date',
+                                                'member_end_date', 'political_party',
+                                                'administrative_region',
+                                                ])
 
 # drop activity that ends before 1/1/1989
 new_df = new_df[(new_df['member_end_date'].dt.year >= 1989)]
 
 # replace start dates before 1989 with 1/1/1989
-new_df['member_start_date'] = np.where(new_df['member_start_date']<'1989-01-01',
-                                       pd.to_datetime(['1989-01-01']),
-                                       new_df['member_start_date'])
+new_df['member_start_date'] = np.where(new_df['member_start_date']<'1989-01-01',pd.to_datetime(['1989-01-01']),new_df['member_start_date'])
 
-new_df.to_csv('../out_files/members_activity_1989onwards.csv', header=True,index=False, encoding='utf-8')
+new_df.to_csv('../out_files/members_activity_1989onwards_latest.csv', header=True,index=False, encoding='utf-8')
