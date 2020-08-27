@@ -15,7 +15,7 @@ python-crfsuite==0.9.5
 python-dateutil==2.7.2
 pytz==2018.4
 pyuca==1.2
-PyYAML==3.12
+PyYAML==5.1
 regex==2018.2.21
 requests==2.21.0
 six==1.11.0
