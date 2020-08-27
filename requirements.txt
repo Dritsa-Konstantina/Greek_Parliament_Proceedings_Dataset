@@ -7,7 +7,7 @@ GitPython==2.1.9
 greek-accentuation==1.2.0
 idna==2.8
 jellyfish==0.6.1
-nltk==3.3
+nltk==3.4.5
 numpy==1.14.3
 pandas==0.22.0
 pygtrie==2.2
