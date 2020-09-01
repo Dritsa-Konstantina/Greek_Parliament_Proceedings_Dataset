@@ -58,6 +58,8 @@ prefs = {"profile.default_content_settings.popups": 0,
          "download.default_directory" : os.path.abspath(downloaded_data_folder),
          "directory_upgrade": True}
 chromeOptions.add_experimental_option("prefs",prefs)
+
+# chromedriver.exe located in the same folder as the script
 driver = webdriver.Chrome('./chromedriver', options=chromeOptions)
 
 #Open a file in order to write down the rows with no files
