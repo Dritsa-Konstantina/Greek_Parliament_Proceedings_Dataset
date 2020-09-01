@@ -63,66 +63,64 @@ chromeOptions.add_experimental_option("prefs",prefs)
 driver = webdriver.Chrome('./chromedriver', options=chromeOptions)
 
 #Open a file in order to write down the rows with no files
-no_files = codecs.open('../out_files/rows_with_no_files.txt','w+', encoding='utf-8')
+with codecs.open('../out_files/rows_with_no_files.txt','w+', encoding='utf-8') as no_files:
 
-# Choose range of pages
-for pageNo in range (100,0,-1):
-    print('Sleeping 5 seconds')
-    page_URL = _URL+str(pageNo)
-    print("Processing page",pageNo,"\n")
-    driver.get(page_URL)
-    time.sleep(5)
+    # Choose range of pages
+    for pageNo in range (100,0,-1):
 
-    html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
-    trs = soup.find("tbody").find_all("tr", {"class":["odd", "even"]})
+        print('Sleeping 5 seconds')
+        page_URL = _URL+str(pageNo)
+        print("Processing page",pageNo,"\n")
+        driver.get(page_URL)
+        time.sleep(5)
 
-    for tr in trs:
+        html = driver.page_source
+        soup = BeautifulSoup(html, "html.parser")
+        trs = soup.find("tbody").find_all("tr", {"class":["odd", "even"]})
 
-        entry_counter += 1
-        print("No. ", entry_counter)
+        for tr in trs:
 
-        files={} #dictionary with file extensions as keys and their links as values
+            entry_counter += 1
+            print("No. ", entry_counter)
 
-        # From each table row return all the links
-        for link in tr.findAll('a', href=True):
+            files={} #dictionary with file extensions as keys and their links as values
 
-            href = link.get('href')
+            # From each table row return all the links
+            for link in tr.findAll('a', href=True):
 
-            # Keep the links that lead to the requested files and the
-            # corresponding filetypes
-            if url_part in href:
-                files.update({(href.split(".")[-1]).lower(): href})
+                href = link.get('href')
 
-        if len(files)==0:
-            no_files.write('Page ' + str(pageNo) + " and date " + tr.find(
-                'td').getText() + " \n")
-            print('File not found')
-        else:
-            # Download the file with the following preference order
-            if "txt" in (ext.lower() for ext in files.keys()):
-                file_ext = 'txt'
-            elif "docx" in (ext.lower() for ext in files.keys()):
-                file_ext = 'docx'
-            elif "doc" in (ext.lower() for ext in files.keys()):
-                file_ext = 'doc'
-            elif "pdf" in (ext.lower() for ext in files.keys()):
-                file_ext = 'pdf'
+                # Keep the links that lead to the requested files and the
+                # corresponding filetypes
+                if url_part in href:
+                    files.update({(href.split(".")[-1]).lower(): href})
 
-            file_URL = files[file_ext]
-            print("File url: ", file_URL)
+            if len(files)==0:
+                no_files.write('Page ' + str(pageNo) + " and date " + tr.find(
+                    'td').getText() + " \n")
+                print('File not found')
+            else:
+                # Download the file with the following preference order
+                if "txt" in (ext.lower() for ext in files.keys()):
+                    file_ext = 'txt'
+                elif "docx" in (ext.lower() for ext in files.keys()):
+                    file_ext = 'docx'
+                elif "doc" in (ext.lower() for ext in files.keys()):
+                    file_ext = 'doc'
+                elif "pdf" in (ext.lower() for ext in files.keys()):
+                    file_ext = 'pdf'
 
-            target_path = create_target_path(target_data_folder, tr, entry_counter, file_ext)
+                file_URL = files[file_ext]
+                print("File url: ", file_URL)
 
-            download_file(driver, downloaded_data_folder, file_URL, target_path)
+                target_path = create_target_path(target_data_folder, tr, entry_counter, file_ext)
 
+                download_file(driver, downloaded_data_folder, file_URL, target_path)
 
-        # Add sleeping time for the script every 50 files
-        if ((entry_counter != 0) and ((entry_counter % 100) == 0)):
-            print("Let's sleep for 3 minutes...")
-            time.sleep(180)
-            print("Up and running again...")
-
-no_files.close()
+            # Add sleeping time for the script every 50 files
+            if ((entry_counter != 0) and ((entry_counter % 100) == 0)):
+                print("Let's sleep for 3 minutes...")
+                time.sleep(180)
+                print("Up and running again...")
 
 driver.close()
