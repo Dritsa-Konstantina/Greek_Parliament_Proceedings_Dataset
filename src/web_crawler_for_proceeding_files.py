@@ -8,7 +8,6 @@ from selenium import webdriver
 import ntpath
 import urllib.parse
 
-
 def create_target_path(target_data_folder, tr, entry_counter, ext):
 
     td_columns = [td.getText().lower() for td in tr.find_all("td")[:4]] #get text from 4 first columns
@@ -40,22 +39,26 @@ def download_file(driver, downloaded_data_folder, file_URL, target_path):
     #unquote: decode url to match downloaded filename (often in cases with Greek letters in filename)
     shutil.copy(urllib.parse.unquote(downloaded_file_path), target_path)  # copy and rename file
 
-
 domain = "https://www.hellenicparliament.gr"
 _URL = 'https://www.hellenicparliament.gr/Praktika/Synedriaseis-Olomeleias?pageNo='
 url_part = "/UserFiles/"
-entry_counter = 0
-downloaded_data_folder = '../original_data_download_folder/'
-target_data_folder = '../original_data/'
+entry_counter = 0 #counter number is included to the name of each file
 
-#set preferred download folder
+downloaded_data_folder = '../original_data_download_folder/'
+if not os.path.exists(downloaded_data_folder):
+    os.makedirs(downloaded_data_folder)
+
+target_data_folder = '../original_data/'
+if not os.path.exists(target_data_folder):
+    os.makedirs(target_data_folder)
+
+# set preferred download folder
 chromeOptions = webdriver.ChromeOptions()
 prefs = {"profile.default_content_settings.popups": 0,
          "download.default_directory" : os.path.abspath(downloaded_data_folder),
          "directory_upgrade": True}
 chromeOptions.add_experimental_option("prefs",prefs)
-driver = webdriver.Chrome(chrome_options=chromeOptions)
-
+driver = webdriver.Chrome('./chromedriver', options=chromeOptions)
 
 #Open a file in order to write down the rows with no files
 no_files = codecs.open('../out_files/rows_with_no_files.txt','w+', encoding='utf-8')
