@@ -8,87 +8,89 @@ import time
 
 now = datetime.datetime.now()
 
-original_members_data = open('../out_files/original_members_data.csv','w+',
-                             encoding='utf-8')
-csv_writer = csv.writer(original_members_data, delimiter=',')
+with open('../out_files/original_members_data.csv','w+',
+          encoding='utf-8') as original_members_data:
 
-_URL = 'http://www.hellenicparliament.gr/Vouleftes/Diatelesantes-Vouleftes-Apo-Ti-Metapolitefsi-Os-Simera/'
+    csv_writer = csv.writer(original_members_data, delimiter=',')
 
-driver = webdriver.Chrome()
-time.sleep(10)
-driver.get(_URL)
-time.sleep(10) #page load time
-html = driver.page_source
-soup = BeautifulSoup(html, "html.parser")
-time.sleep(2)
+    _URL = 'http://www.hellenicparliament.gr/Vouleftes/Diatelesantes' \
+           '-Vouleftes-Apo-Ti-Metapolitefsi-Os-Simera/'
 
-#Get dropdown list
-members_dropdown = soup.find("select", id="ctl00_ContentPlaceHolder1_dmps_mpsListId")
+    # chromedriver.exe located in the same folder as the script
+    driver = webdriver.Chrome('./chromedriver')
+    time.sleep(5)
+    driver.get(_URL)
+    time.sleep(5) #page load time
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    time.sleep(2)
 
-members_links={}
+    #Get dropdown list
+    members_dropdown = soup.find("select", id="ctl00_ContentPlaceHolder1_dmps_mpsListId")
 
-#Store all links and members' names in a dictionary
-for option in members_dropdown.find_all('option'):
-    members_links[option['value']] = option.get_text()
+    members_links={}
 
-print('Total list length: ', (len(members_links)-1))
+    #Store all links and members' names in a dictionary
+    for option in members_dropdown.find_all('option'):
+        members_links[option['value']] = option.get_text()
 
-member_counter=0
+    print('Total list length: ', (len(members_links)-1))
 
-for link, member in members_links.items():
+    member_counter=0
 
-    if member!='' and member!=' Επιλέξτε Βουλευτή':
+    for link, member in members_links.items():
 
-        member_counter+=1
-        if member_counter%50==0:
-            time.sleep(15)
-        print(str(member_counter)+' from '+str(len(members_links)-1))
-        print("Name: ",member)
-        member_URL = _URL+'?MpId='+link
-        print("Processing page ",member_URL,"\n")
+        if member!='' and member!=' Επιλέξτε Βουλευτή':
 
-        driver.get(member_URL)
-        time.sleep(3)
-        html = driver.page_source
-        soup_member = BeautifulSoup(html, "html.parser")
+            member_counter+=1
+            if member_counter%50==0:
+                time.sleep(15)
+            print(str(member_counter)+' from '+str(len(members_links)-1))
+            print("Name: ",member)
+            member_URL = _URL+'?MpId='+link
+            print("Processing page ",member_URL,"\n")
 
-        #if the page has no table
-        if not soup_member.find("tbody"):
-            original_members_data.write('No:'+str(member_counter)+',Name:'+member+',NO DATA\n')
+            driver.get(member_URL)
+            time.sleep(3)
+            html = driver.page_source
+            soup_member = BeautifulSoup(html, "html.parser")
 
-        else:
-            trs = soup_member.find("tbody").find_all("tr", {"class":["odd", "even"]})
+            #if the page has no table
+            if not soup_member.find("tbody"):
+                original_members_data.write('No:'+str(member_counter)+',Name:'+member+',NO DATA\n')
 
-            for tr in trs:
+            else:
+                trs = soup_member.find("tbody").find_all("tr", {"class":["odd", "even"]})
 
-                td_columns = [td.getText() for td in tr.find_all("td")]
+                for tr in trs:
 
-                period = td_columns[0]
-                period = re.sub(r"\s+", "", period)
-                if '-)' in period:
+                    td_columns = [td.getText() for td in tr.find_all("td")]
 
-                    # for example Period:ΙΖ΄(20/09/2015-) means it continues up to today
-                    period = re.sub('-\)', '-'+ now.strftime("%d/%m/%Y")+')', period)
+                    period = td_columns[0]
+                    period = re.sub(r"\s+", "", period)
+                    if '-)' in period:
 
-                date = td_columns[1]
-                date = re.sub(r"\s+", "", date)
+                        # for example Period:ΙΖ΄(20/09/2015-) means it continues up to today
+                        period = re.sub('-\)', '-'+ now.strftime("%d/%m/%Y")+')', period)
 
-                administrative_region = td_columns[2]
-                administrative_region = re.sub(r"\s+", "", administrative_region)
+                    date = td_columns[1]
+                    date = re.sub(r"\s+", "", date)
 
-                parliamentary_party = td_columns[3]
-                parliamentary_party = re.sub(r"\s+", "", parliamentary_party)
+                    administrative_region = td_columns[2]
+                    administrative_region = re.sub(r"\s+", "", administrative_region)
 
-                description = td_columns[4]
-                description = re.sub(r"\s+", "", description)
+                    parliamentary_party = td_columns[3]
+                    parliamentary_party = re.sub(r"\s+", "", parliamentary_party)
 
-                csv_writer.writerow(['No:'+str(member_counter),
-                                     'Name:'+member,
-                                     'Period:'+period,
-                                     'Date:'+date,
-                                     'Administrative-Region:'+administrative_region,
-                                     'Parliamentary-Party:'+parliamentary_party,
-                                     'Description:'+description])
+                    description = td_columns[4]
+                    description = re.sub(r"\s+", "", description)
 
-original_members_data.close()
-driver.close()
+                    csv_writer.writerow(['No:'+str(member_counter),
+                                         'Name:'+member,
+                                         'Period:'+period,
+                                         'Date:'+date,
+                                         'Administrative-Region:'+administrative_region,
+                                         'Parliamentary-Party:'+parliamentary_party,
+                                         'Description:'+description])
+
+    driver.close()
