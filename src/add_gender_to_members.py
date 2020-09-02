@@ -1,5 +1,4 @@
 import re
-import csv
 import pandas as pd
 
 with open('../out_files/female_names_alternatives_gr.txt', 'r+', encoding = 'utf-8') as f1,\
@@ -23,12 +22,12 @@ with open('../out_files/female_names_alternatives_gr.txt', 'r+', encoding = 'utf
     female_list = list(filter(None, female_list))
     male_list = list(filter(None, male_list))
 
-    #keep names used for bot males and females
+    # keep names used for both males and females
     unisex_names = list(set(male_list).intersection(female_list))
 
-    df = pd.read_csv('../out_files/members_activity_1989onwards_latest.csv')
+    df = pd.read_csv('../out_files/members_activity_1989onwards.csv')
 
-    df['gender']=''
+    df['gender'] = ''
 
     for index, row in df.iterrows():
 
@@ -43,7 +42,6 @@ with open('../out_files/female_names_alternatives_gr.txt', 'r+', encoding = 'utf
         elif first_name in male_list:
             row['gender'] = 'male'
         else:
-            print('Name not categorized in any gender: ',row['member_name'])
-
+            print('Name not categorized in any gender: ', row['member_name'])
 
 df.to_csv('../out_files/members_activity_1989onwards_with_gender.csv', header=True, index=False, encoding='utf-8')
