@@ -2,9 +2,10 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
+
 def crawl_names(page_range, url, outfilepath):
 
-    with open(outfilepath, 'w+', encoding='utf-8') as f:  # encoding for Greek
+    with open(outfilepath, 'w+', encoding='utf-8') as f:
 
         for pageNo in range(1, page_range+1):
 
