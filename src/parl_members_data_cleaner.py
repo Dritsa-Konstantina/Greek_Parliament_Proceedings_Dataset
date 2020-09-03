@@ -141,7 +141,7 @@ def region_formatting(region):
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
-df = pd.read_csv('../out_files/original_members_data.csv', encoding='utf-8', header=None,
+df = pd.read_csv('../out_files/original_parl_members_data.csv', encoding='utf-8', header=None,
                  names = ['no', 'member_name', 'period_date_range', 'event_date',
          'administrative_region', 'political_party',  'event_description'])
 
@@ -348,4 +348,4 @@ new_df['member_start_date'] = np.where(new_df['member_start_date'] < '1989-01-01
                                        pd.to_datetime(['1989-01-01']),
                                        new_df['member_start_date'])
 
-new_df.to_csv('../out_files/members_activity_1989onwards.csv', header=True, index=False, encoding='utf-8')
+new_df.to_csv('../out_files/parl_members_activity_1989onwards.csv', header=True, index=False, encoding='utf-8')

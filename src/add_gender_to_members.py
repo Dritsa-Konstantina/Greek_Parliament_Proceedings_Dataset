@@ -25,7 +25,7 @@ with open('../out_files/female_names_alternatives_gr.txt', 'r+', encoding = 'utf
     # keep names used for both males and females
     unisex_names = list(set(male_list).intersection(female_list))
 
-    df = pd.read_csv('../out_files/members_activity_1989onwards.csv')
+    df = pd.read_csv('../out_files/parl_members_activity_1989onwards.csv')
 
     df['gender'] = ''
 
@@ -44,4 +44,4 @@ with open('../out_files/female_names_alternatives_gr.txt', 'r+', encoding = 'utf
         else:
             print('Name not categorized in any gender: ', row['member_name'])
 
-df.to_csv('../out_files/members_activity_1989onwards_with_gender.csv', header=True, index=False, encoding='utf-8')
+df.to_csv('../out_files/parl_members_activity_1989onwards_with_gender.csv', header=True, index=False, encoding='utf-8')
