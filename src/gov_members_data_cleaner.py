@@ -404,7 +404,7 @@ def assert_balanced_events_for_each_role(df):
 
 
 # PREPARE DATAFRAME
-df = pd.read_csv('../out_files/initial_ggk_data.csv', encoding='utf-8')
+df = pd.read_csv('../out_files/original_gov_members_data.csv', encoding='utf-8')
 # print(df.columns) #['date', 'event', 'member_name', 'member_role', 'gov_date_from', 'gov_date_to', 'gov_name']
 
 # df.fillna(value=np.nan, inplace=True)
@@ -614,7 +614,7 @@ for name, subdf in df.groupby(['cleaned_fullname', 'gov_date_from']):
 df['date']= pd.to_datetime(df['date'])
 df = df.sort_values(by='date', ascending=True)#.reset_index(drop=True) #,inplace=True
 df.drop_duplicates(inplace=True)
-df.to_csv('../out_files/cleaned_ggk_data.csv', encoding='utf-8', index=False)
+df.to_csv('../out_files/cleaned_gov_members_data.csv', encoding='utf-8', index=False)
 
 # # Save names in separate file
 # df_names = df['cleaned_fullname'].to_frame().join(df['gender']).join(df['member_name'])
@@ -623,7 +623,7 @@ df.to_csv('../out_files/cleaned_ggk_data.csv', encoding='utf-8', index=False)
 # print(df_names.columns)
 # df_names.to_csv('../out_files/cleaned_ggk_members.csv', encoding='utf-8', index=False)
 
-df = pd.read_csv('../out_files/cleaned_ggk_data.csv', encoding='utf-8')
+df = pd.read_csv('../out_files/cleaned_gov_members_data.csv', encoding='utf-8')
 
 # balanced = assert_balanced_events_for_each_role(df)
 # print('Are all events balanced in the dataset? ', balanced)
@@ -679,7 +679,7 @@ for name, subdf in df.groupby(['cleaned_fullname','gov_date_from']):
 final_df = pd.DataFrame(final_list, columns = ['member_name', 'role', 'role_start_date', 'role_end_date', 'gender'])
 # print(final_df)
 
-final_df.to_csv('../out_files/formatted_roles_ggk_data.csv', encoding='utf-8',index=False)
+final_df.to_csv('../out_files/formatted_roles_gov_members_data.csv', encoding='utf-8',index=False)
 
 
 

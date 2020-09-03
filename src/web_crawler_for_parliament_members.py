@@ -8,7 +8,7 @@ import time
 
 now = datetime.datetime.now()
 
-with open('../out_files/original_members_data.csv','w+',
+with open('../out_files/original_parl_members_data.csv','w+',
           encoding='utf-8') as original_members_data:
 
     csv_writer = csv.writer(original_members_data, delimiter=',')
