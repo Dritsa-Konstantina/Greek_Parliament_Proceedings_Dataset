@@ -571,7 +571,6 @@ for name, subdf in df.groupby(['cleaned_fullname', 'gov_date_from']):
 df['date']= pd.to_datetime(df['date'])
 df = df.sort_values(by='date', ascending=True)
 df.drop_duplicates(inplace=True)
-df.to_csv('../out_files/cleaned_gov_members_data.csv', encoding='utf-8', index=False)
 
 balanced = assert_balanced_events_for_each_role(df)
 print('Are all events balanced in the dataset? ', balanced)
