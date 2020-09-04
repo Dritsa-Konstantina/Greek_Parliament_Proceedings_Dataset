@@ -7,29 +7,15 @@ import math
 import re
 import codecs
 import pandas as pd
-import time
 import numpy as np
 import datetime
 from collections import Counter
 
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.width', 1000)
-pd.set_option('display.max_colwidth', -1)
-
-# cleaned_ggk_data includes
-# date	event	member_name	member_role	gov_date_from	gov_date_to	gov_name	member_first_name	member_last_name	nickname	gender	cleaned_fullname
-
-# cleaned_ggk_members includes
-#cleaned_fullname, gender, member_name
-
-# formatted_roles_ggk_data includes
-# member_name, roles, gender
 
 def explode(df, column_to_split):
 
     # all columns except `column_to_split`
-    initial_cols =df.columns.to_list()
+    initial_cols = df.columns.to_list()
     other_cols = df.columns.difference([column_to_split], sort=False)
 
     # calculate length of list equal to number of separate roles
@@ -53,10 +39,13 @@ def explode(df, column_to_split):
 
     # drop old index and create new
     res = res.reset_index(drop=True)
+
     return res
+
 
 # ASSERTIONS
 def assert_filled_gender(df):
+
     for index, row in df.iterrows():
         if pd.isnull(row['gender']):
             print(row.gender)
@@ -65,9 +54,12 @@ def assert_filled_gender(df):
         print(df['cleaned_fullname'][df['gender'].isnull()])
     else:
         print('All names matched to genders.')
+
     return
 
+
 def specific_corrections(df):
+
     d3 = {'στεφανος μανου': 'στεφανος μανος', 'αθανασιος νακου':'αθανασιος νακος',
          'αλεξανδρος κοντου' : 'αλεξανδρος κοντος', 'αναργυρος φατουρου' : 'αναργυρος φατουρου',
          'ανδρεας λοβερδου' : 'ανδρεας λοβερδος', 'ανδρεας λυκουρεντζου' : 'ανδρεας λυκουρεντζος',
@@ -100,16 +92,12 @@ def specific_corrections(df):
          'χρηστος ροκοφυλλου' : 'χρηστος ροκοφυλλος', 'χρηστος-γεωργιος σκερτσου' : 'χρηστος-γεωργιος σκερτσος',
           r'\bλιασκου\b': 'λιασκος', r'\bευρυπιδης\b':'ευριπιδης', r'\bιωαννης βαρουφακης\b': 'γιανης βαρουφακης',
           r'\bζουραρις\b': 'ζουραρης'
-
           }
 
     df['cleaned_fullname'] = df['cleaned_fullname'].replace(d3, regex=True)
 
+    return df
 
-    return(df)
-
-# def changed_ministry_names():
-#     παπανδρεου ανδρεα, 1993-10-13,
 
 def first_name_formatting(df):
 
@@ -126,19 +114,21 @@ def first_name_formatting(df):
          r'\bευρυπιδης\b':'ευριπιδης', r'\bαντωνη\b':'αντωνιου', r'\bανασταση\b': 'αναστασιου'
 
          }
+
     # regex False exact full string match,
     # regex True substrings replaced unless use \bstring\b in first parenthesis. regex only in first parenthesis
     df['member_first_name'] = df['member_first_name'].replace(d, regex=True)
 
-    return(df)
+    return df
+
 
 def name_formatting_dataframe(df):
+
     df['member_name'] = df['member_name'].str.replace(r'\x96', '-')
     df['member_name'] = df['member_name'].str.replace(r'\s+\-\s+', '-')
 
     # Add whitespace before parenthesis. (\S) matches any non-whitespace character.
-    df['member_name'] = df['member_name'].str.replace(r"(\S)\(",
-                                                                r'\1 (')
+    df['member_name'] = df['member_name'].str.replace(r"(\S)\(", r'\1 (')
     # remove father's name in parenthesis
     regex_fatherName = re.compile('(^.*)(\s\((του)\s.*?\)$)')
     df['member_name'] = df['member_name'].str.replace(regex_fatherName, r'\1')
@@ -164,8 +154,10 @@ def name_formatting_dataframe(df):
           r'\bκαλατζακου\b':'καλαντζακου', r'\bγενηματα\b':'γεννηματα',
           r'\bψαρουδας\b':'ψαρουδα'
           }
-    df['member_name'] = df['member_name'].replace(d1, regex=True) # replace substring first parenthesis accepts regex, second accepts string so we don't need to escape the parenthesis symbol
 
+    # replace substring first parenthesis accepts regex,
+    # second accepts string so we don't need to escape the parenthesis symbol
+    df['member_name'] = df['member_name'].replace(d1, regex=True)
 
     # Convert full strings to genitive case
     d2 = {'τζαννη τζανετακη': 'τζαννη τζαννετακη', 'φανη παλλη-πετραλια': 'φανης παλλη-πετραλια',
@@ -177,9 +169,10 @@ def name_formatting_dataframe(df):
           'βασιλικης παπανδρεου': 'βασιλικης παπανδρεου (βασως)', 'αντωνιος ρουπακιωτης':'αντωνιου ρουπακιωτη',
           'ιωαννη λιαππη':'ιωαννη λιαπη', 'ιωαννη κεφαλλογιαννη':'ιωαννη κεφαλογιαννη',
           'αναστασιου λιασκος': 'αναστασιου λιασκου', 'φωτη κουβελη':'φωτιου-φανουριου κουβελη'
-         }
+          }
 
-    df['member_name'] = df['member_name'].replace(d2, regex=False) # regex False exact full string match, regex True substrings replaced
+    # regex False exact full string match, regex True substrings replaced
+    df['member_name'] = df['member_name'].replace(d2, regex=False)
 
     df['member_name'] = df['member_name'].str.replace('κων/νου',
                                                                 'κωνσταντινου')
@@ -197,18 +190,17 @@ def name_formatting_dataframe(df):
         'αποστολου-αθανασιου τσοχατζοπουλου')
 
     df['member_name'] = df['member_name'].str.strip()
-    # print(df['member_name'].to_list())
 
-    return(df)
+    return df
+
 
 def format_member_role(role):
-    # print(role)
 
-    convert_roles = {'πρωθυπουργου':'πρωθυπουργος', 'υπουργου':'υπουργος',
-                     'αναπληρωτη':'αναπληρωτης', 'αναπληρωτριας':'αναπληρωτης',
-                     'αναπληρωτου': 'αναπληρωτης', 'υπουργουυγειας,':'υπουργος υγειας ',
-                     'υφυπουργου':'υφυπουργος', 'υφυπουγου':'υφυπουργος',
-                     'αντιπροεδρου':'αντιπροεδρος'}
+    convert_roles = {'πρωθυπουργου': 'πρωθυπουργος', 'υπουργου' :'υπουργος',
+                     'αναπληρωτη': 'αναπληρωτης', 'αναπληρωτριας': 'αναπληρωτης',
+                     'αναπληρωτου': 'αναπληρωτης', 'υπουργουυγειας,': 'υπουργος υγειας ',
+                     'υφυπουργου': 'υφυπουργος', 'υφυπουγου': 'υφυπουργος',
+                     'αντιπροεδρου': 'αντιπροεδρος'}
 
     parts = role.split()
     for i, part in enumerate(parts):
@@ -252,8 +244,9 @@ def format_member_role(role):
     new_role = re.sub(r'\s\s+', ' ', new_role)
     new_role = re.sub(r'(,|\.)$', '', new_role)
     new_role = new_role.strip()
-    # print(new_role)
+
     return new_role
+
 
 def correct_specific_roles(df, name, role_before, role_after, date, gov_date_from):
 
@@ -261,9 +254,10 @@ def correct_specific_roles(df, name, role_before, role_after, date, gov_date_fro
            & (df.member_role == role_before) \
            & (df.date == date) \
            & (df.gov_date_from == gov_date_from)
-    # print(df.loc[mask, 'member_role'])
     df.loc[mask, 'member_role'] = role_after
+
     return df
+
 
 def correct_specific_events(df, name, role, event_before, event_after, date, gov_date_from):
 
@@ -273,19 +267,24 @@ def correct_specific_events(df, name, role, event_before, event_after, date, gov
            & (df.member_role == role) & \
            (df.gov_date_from == gov_date_from)
     df.loc[mask, 'event'] = event_after
+
     return df
 
 def text_formatting(text):
+
     text = re.sub("['’`΄‘́̈]",'', text)
-    text = re.sub('\t+' , ' ', text) #replace one or more tabs with one space
-    text = text.lstrip() #remove leading spaces
-    text = text.rstrip() #remove trailing spaces
-    text = re.sub('\s\s+' , ' ', text) #replace more than one spaces with one space
+    text = re.sub('\t+' , ' ', text)
+    text = text.lstrip()
+    text = text.rstrip()
+    text = re.sub('\s\s+' , ' ', text)
     text = re.sub('\s*(-|–)\s*' , '-', text) #fix dashes
     text = text.lower()
     text = text.translate(str.maketrans('άέόώήίϊΐiύϋΰ','αεοωηιιιιυυυ')) #remove accents
-    text = text.translate(str.maketrans('akebyolruxtvhmnz','ακεβυολρυχτνημνζ')) #convert english characters to greek
-    return(text)
+    # convert english characters to greek
+    text = text.translate(str.maketrans('akebyolruxtvhmnz','ακεβυολρυχτνημνζ'))
+
+    return text
+
 
 def json_file_to_chartrie(json_file):
 
@@ -299,160 +298,123 @@ def json_file_to_chartrie(json_file):
     for key, value in json_dict.items():
         trie[key] = value
 
-    return(trie)
+    return trie
+
 
 def find_nominative_and_gender(search_term, gender, tries, surname_search = False):
 
     if pd.isnull(search_term):
-        return(search_term, gender)
+        return search_term, gender
     else:
         if surname_search == False or gender=='male' or pd.isnull(gender):
-            # print(search_term)
 
             parts_of_name = {}
-
             for part in search_term.split('-'):
 
                 # return the same if nothing is found
                 matched_name, matched_gender = part, gender
-
                 first_half = part[0:(math.ceil(len(part) / 2))]
-                # print('first_half ', first_half)
-
                 foundintrie = False
 
                 for trie_gender, trie in tries.items():
 
                     if trie.has_subtrie(first_half):
-                        # if part == 'σπυριδωνα':
-                        #     print('***************')
+
                         for name, info in trie.iteritems(prefix=first_half):
+
                             if len(name) > ((2 * len(first_half)) + 2) or name=='νικολαους':
                                 continue
-                            # if part=='σπυριδωνα':
-                            #     print(name)
 
                             if type(info['ενικος']['γενικη']) == str and part == info['ενικος']['γενικη']:
 
                                 matched_name, matched_gender = name, trie_gender
-                                # if part == 'σπυριδωνα':
-                                #     print('yes')
-                                #     print(matched_name)
-                                foundintrie = True
-                                break
-                            elif type(info['ενικος']['γενικη']) == list and part in info['ενικος']['γενικη']:
-                                matched_name, matched_gender = name, trie_gender
-                                # if part == 'σπυριδωνα':
-                                #     print('yesss')
-                                #     print(matched_name)
                                 foundintrie = True
                                 break
 
-                if surname_search == True and foundintrie == False: #if it is male surname
-                    # print(part)
+                            elif type(info['ενικος']['γενικη']) == list and part in info['ενικος']['γενικη']:
+                                matched_name, matched_gender = name, trie_gender
+                                foundintrie = True
+                                break
+
+                # if it is male surname
+                if surname_search == True and foundintrie == False:
                     if not (part.endswith('ου') or (part[-1] in ['ς', 'λ', 'τ', 'κ'])):
                         matched_name = part+'ς'
-                # if '-' in search_term:
-                #     print(matched_name)
+
                 parts_of_name[matched_name] = matched_gender
 
             # if all genders are the same
             genders = list(set([g for g in parts_of_name.values() if not pd.isnull(g)]))
-            if len(genders)<=1:
+            if len(genders) <= 1:
+
                 matched_name = '-'.join(parts_of_name.keys())
                 # sets don't support indexing or slicing
                 matched_gender = genders[0] if len(genders)==1 else np.nan
-                # if part =='αλεξανδρος':
-                #     print(matched_gender, matched_name)
+
             else:
-                print('error with genders of name parts of ', search_term)
+                print('Error with genders of name parts of ', search_term)
                 print(parts_of_name)
 
         # if we are searching for the nominative of a female surname, it is the same
         else:
             matched_name, matched_gender = search_term, gender
-        # if not pd.isnull(gender) and not pd.isnull(matched_gender):
-        #     if gender!= matched_gender:
-        #         print(search_term, gender, matched_gender)
-        # if search_term=='σταυρου':
-        #     print(search_term, matched_name, matched_gender)
+
         return matched_name, matched_gender
 
+
 def assert_balanced_events_for_each_role(df):
+
     start_events = ['διορισμος', 'αρχη_κυβερνησης']
     end_events = ['παραιτηση', 'παυση', 'απεβιωσε', 'last_script_run', 'τελος_κυβερνησης']
     balanced = True
 
-    for name, subdf in df.groupby(['cleaned_fullname',
-                                   'gov_date_from', 'member_role']):  # , 'gov_date_to', 'member_role'
-        if True:
-            # if (subdf['gov_name'].iloc[0]) != 'μητσοτακη κυριακου':
+    for name, subdf in df.groupby(['cleaned_fullname', 'gov_date_from', 'member_role']):
 
-            # subdf = subdf.sort_values(by='date', ascending=True)
+        start_events_subdf = subdf.loc[subdf.event.isin(start_events)]
+        end_events_subdf = subdf.loc[(subdf.event.isin(end_events))]
 
-            start_events_subdf = subdf.loc[subdf.event.isin(start_events)]
-            end_events_subdf = subdf.loc[(subdf.event.isin(end_events))]
-
-            if start_events_subdf.shape[0] != end_events_subdf.shape[0]:
-
-                # print(subdf.sort_values(by='date', ascending=True))
-                print(subdf)
-                print()
-                balanced = False
+        if start_events_subdf.shape[0] != end_events_subdf.shape[0]:
+            balanced = False
 
     return balanced
 
-
 # PREPARE DATAFRAME
 df = pd.read_csv('../out_files/original_gov_members_data.csv', encoding='utf-8')
-# print(df.columns) #['date', 'event', 'member_name', 'member_role', 'gov_date_from', 'gov_date_to', 'gov_name']
-
-# df.fillna(value=np.nan, inplace=True)
 df = name_formatting_dataframe(df)
-
-# for index, row in df.iterrows():
-#     if len((row.member_name).split(' ')) >3:
-#         print(row.member_name)
 
 df[['member_first_name','member_last_name', 'nickname']] = df['member_name'].str.split(" ", expand=True).fillna(value=np.nan)
 
-
 df = first_name_formatting(df)
-# print(df['member_name'].to_list())
-# time.sleep(100000)
 df['nickname'] = df['nickname'].str.replace(r'[\(\)]', '')
 df['gender'] = np.nan
-
 
 # CREATE TRIES FOR NAME SEARCH
 male_name_trie = json_file_to_chartrie('../out_files/wiki_data/male_name_cases_populated.json')
 female_name_trie = json_file_to_chartrie('../out_files/wiki_data/female_name_cases_populated.json')
 male_surname_trie = json_file_to_chartrie('../out_files/wiki_data/male_surname_cases_populated.json')
-#female_surname_trie = json_file_to_chartrie('../out_files/wiki_data/female_surname_cases_populated.json')
 
 name_tries = {'male':male_name_trie, 'female':female_name_trie}
 surname_tries = {'male': male_surname_trie} # because female surnames don't change between cases
 
 # FIND NOMINATIVE CASE AND GENDER
 # Create df because only on df (not series/column) you can apply a custom function that returns two variables
-# first_name_gender_df = pd.DataFrame(data = df['member_first_name'].copy(), columns=['member_first_name'])
-
 first_name_gender_df = df['member_first_name'].to_frame().join(df['gender'])
-df[['member_first_name', 'gender']] = first_name_gender_df.apply(lambda x: find_nominative_and_gender(x['member_first_name'], x['gender'], name_tries, surname_search=False), axis=1, result_type="expand")
-
+df[['member_first_name', 'gender']] = first_name_gender_df.apply(lambda x: find_nominative_and_gender(
+    x['member_first_name'], x['gender'], name_tries, surname_search=False), axis=1, result_type="expand")
 
 nickname_gender_df = df['nickname'].to_frame().join(df['gender'])
-df[['nickname', 'gender']] = nickname_gender_df.apply(lambda x: find_nominative_and_gender(x['nickname'], x['gender'], name_tries, surname_search=False), axis=1, result_type="expand")
-
+df[['nickname', 'gender']] = nickname_gender_df.apply(lambda x: find_nominative_and_gender(
+    x['nickname'], x['gender'], name_tries, surname_search=False), axis=1, result_type="expand")
 
 df["nickname"] = df["nickname"].apply(lambda x: '('+x+')' if not pd.isnull(x) else '')
 
 last_name_gender_df = df['member_last_name'].to_frame().join(df['gender'])
-df[['member_last_name', 'gender']] = last_name_gender_df.apply(lambda x: find_nominative_and_gender(x['member_last_name'], x['gender'], surname_tries, surname_search=True), axis=1, result_type="expand")
+df[['member_last_name', 'gender']] = last_name_gender_df.apply(lambda x: find_nominative_and_gender(
+    x['member_last_name'], x['gender'], surname_tries, surname_search=True), axis=1, result_type="expand")
 
 # JOIN
 name_cols = ['member_first_name', 'member_last_name', 'nickname'] #
-df['cleaned_fullname'] = df[name_cols].agg(' '.join, axis=1).str.strip()#.replace(r'\s+', ' ')
+df['cleaned_fullname'] = df[name_cols].agg(' '.join, axis=1).str.strip()
 df = specific_corrections(df)
 
 df['member_role'] = df['member_role'].apply(format_member_role)
@@ -480,40 +442,42 @@ df['member_role'] = df['member_role'].str.replace(r'^και\s', '')
 # specific corrections
 #----------------
 
-# missing rows
-new_rows = [ # date, event, member_name, member_role, gov_date_from, gov_date_to,
-            # gov_name, first, last, gender, nickname, cleaned_fullname
+''' missing rows
+Format of a row: [date, event, member_name, member_role, gov_date_from, gov_date_to,
+gov_name, first, last, gender, nickname, cleaned_fullname]'''
+new_rows = [
     ['2012-03-27', 'παραιτηση', 'φωτεινης γεννηματα', 'αναπληρωτης υπουργος εσωτερικων',
-     '2011-11-11', '2012-05-17', 'παπαδημου λουκα δ.', #'υπηρεσιακη/μεταβατικη κυβερνηση',
+     '2011-11-11', '2012-05-17', 'παπαδημου λουκα δ.',
      'φωτεινη', 'γεννηματα', np.nan, 'female', 'φωτεινη γεννηματα'],
     ['1996-09-25', 'παραιτηση', 'σημιτη κωνσταντινου', 'πρωθυπουργος',
-     '1996-01-22', '1996-09-25', 'κωνσταντινου σημιτη', #'πανελληνιο σοσιαλιστικο κινημα',
+     '1996-01-22', '1996-09-25', 'κωνσταντινου σημιτη',
      'κωνσταντινος', 'σημιτης',  np.nan, 'male', 'κωνσταντινος σημιτης'],
     ['1999-09-14', 'απεβιωσε', 'γιαννου κρανιδιωτη', 'αναπληρωτης υπουργος εξωτερικων',
-     '1996-09-25', '2000-04-13', 'σημιτη κωνσταντινου', #'πανελληνιο σοσιαλιστικο κινημα',
+     '1996-09-25', '2000-04-13', 'σημιτη κωνσταντινου',
      'γιαννος', 'κρανιδιωτης', np.nan,'male', 'γιαννος κρανιδιωτης'],
     ['2012-06-21', 'τελος_κυβερνησης', 'γεωργιου ζανια', 'υπουργος οικονομικων',
-     '2012-05-17', '2012-06-21', 'πικραμμενου παναγιωτη οθ. (υπηρεσιακη)',#'υπηρεσιακη/μεταβατικη κυβερνηση',
+     '2012-05-17', '2012-06-21', 'πικραμμενου παναγιωτη οθ. (υπηρεσιακη)',
      'γεωργιος', 'ζανιας', np.nan, 'male', 'γεωργιος ζανιας'],
     ['2012-06-21', 'αρχη_κυβερνησης', 'γεωργιου ζανια', 'υπουργος οικονομικων',
-     '2012-06-21','2015-01-26','σαμαρα κ. αντωνιου',#'νεα δημοκρατια',
+     '2012-06-21','2015-01-26','σαμαρα κ. αντωνιου',
      'γεωργιος', 'ζανιας', np.nan, 'male',  'γεωργιος ζανιας'],
     ['2012-06-21', 'αρχη_κυβερνησης', 'γεωργιου ζανια', 'υπουργος οικονομικων',
-     '2012-06-21','2015-01-26','σαμαρα κ. αντωνιου',#'νεα δημοκρατια',
+     '2012-06-21','2015-01-26','σαμαρα κ. αντωνιου',
      'γεωργιος', 'ζανιας', np.nan, 'male',  'γεωργιος ζανιας']
 ]
 rows_df = pd.DataFrame(new_rows, columns = df.columns)
 df = df.append(rows_df, ignore_index=True)
 
-
 # FIX CHANGE IN MEMBER ROLES BASED ON "Ν. 1943/1991" https://gslegal.gov.gr/?p=1304
+# string column to timestamp
 df['gov_date_from']= pd.to_datetime(df['gov_date_from'])
 df['date']= pd.to_datetime(df['date'])
 
 gov_date_from = datetime.datetime.strptime('1990-04-11', '%Y-%m-%d')
 event_date = datetime.datetime.strptime('1991-04-11', '%Y-%m-%d')
 
-ministers_without_portfolio_1990 = df.loc[(df.gov_date_from == gov_date_from) & (df.member_role=='υπουργος χωρις χαρτοφυλακιο')].copy()
+ministers_without_portfolio_1990 = df.loc[
+    (df.gov_date_from == gov_date_from) & (df.member_role=='υπουργος χωρις χαρτοφυλακιο')].copy()
 
 for name, subdf in ministers_without_portfolio_1990.groupby(['cleaned_fullname']):
     if subdf.shape[0] == 1 and subdf['event'].iloc[0] == 'διορισμος':
@@ -521,11 +485,10 @@ for name, subdf in ministers_without_portfolio_1990.groupby(['cleaned_fullname']
         new_subdf = copy.append(copy, ignore_index=True)
         # we can use .at because index is reset
         new_subdf['event'].at[0] = 'παραιτηση'
-        new_subdf['date'].at[0] = (event_date - datetime.timedelta(days=1)).date()
+        new_subdf['date'].at[0] = event_date - datetime.timedelta(days=1)
         new_subdf['event'].at[1] = 'διορισμος'
         new_subdf['date'].at[1] = event_date
         new_subdf['member_role'].at[1] = 'υπουργος επικρατειας'
-
         df = pd.concat([df, new_subdf], ignore_index=True)
     else:
         print('Error in minsters without portfolio in 1990.')
@@ -577,9 +540,10 @@ df = correct_specific_roles(df, 'παναγιωτης κουρουμπλης', '
 
 assert_filled_gender(df)
 df.drop_duplicates(inplace=True)
+df['gov_date_to'] = pd.to_datetime(df['gov_date_to'])
 
 # FIX LAST GOVERNMENT ROLE ENDING DATES
-last_gov_events = df.loc[(df.gov_date_from==df.gov_date_from.max())].copy()
+last_gov_events = df.loc[(df.gov_date_from == df.gov_date_from.max())].copy()
 for name, subdf in last_gov_events.groupby(['cleaned_fullname', 'member_role']):
     if subdf.shape[0] == 1 and subdf['event'].iloc[0] == 'διορισμος':
         copy = subdf.copy()
@@ -588,156 +552,52 @@ for name, subdf in last_gov_events.groupby(['cleaned_fullname', 'member_role']):
         copy['date'].iat[0] = copy['gov_date_to'].iat[0]
         df = pd.concat([df, copy], ignore_index=True)
 
-
 for name, subdf in df.groupby(['cleaned_fullname', 'gov_date_from']):
     freqs = Counter(subdf['member_role'].to_list())
-    # print(freqs)
     odd_roles = [role for role in freqs.keys() if freqs[role] == 1]
     if len(odd_roles) == 2:
         matched_events = subdf.loc[(subdf['member_role'].isin(odd_roles))]
-        # print(matched_events)
         matched_events = matched_events.sort_values(by='date', ascending=True)
         indexes = matched_events.index
-        # print(indexes)
-        # print(df.loc[(df.index==indexes[0]) & (df.event=='διορισμος'),'member_role'].values)
-        # print(type(df.loc[(df.index==indexes[0]) & (df.event=='διορισμος'),'member_role']))
 
         # for the index of resignation, change the role to that of the appointment
-        df.loc[(df.index==indexes[1]) & (df.event=='παραιτηση'),'member_role'] = df.loc[(df.index==indexes[0]) & (df.event=='διορισμος'),'member_role'].values[0]
-        # print(indexes)
+        df.loc[(df.index==indexes[1]) & (df.event=='παραιτηση'),'member_role'] = \
+            df.loc[(df.index==indexes[0]) & (df.event=='διορισμος'),'member_role'].values[0]
 
     elif len(odd_roles) != 2 and len(odd_roles) != 0:
-        print('weird')
+        print('Problem with data for name ' + name)
 
 # group by cleaned_fullname gov_date_from balanced events
-
 df['date']= pd.to_datetime(df['date'])
-df = df.sort_values(by='date', ascending=True)#.reset_index(drop=True) #,inplace=True
+df = df.sort_values(by='date', ascending=True)
 df.drop_duplicates(inplace=True)
 df.to_csv('../out_files/cleaned_gov_members_data.csv', encoding='utf-8', index=False)
 
-# # Save names in separate file
-# df_names = df['cleaned_fullname'].to_frame().join(df['gender']).join(df['member_name'])
-# df_names.drop_duplicates(inplace=True)
-# df_names = df_names.sort_values(['gender', 'cleaned_fullname'], ascending=[True, True])
-# print(df_names.columns)
-# df_names.to_csv('../out_files/cleaned_ggk_members.csv', encoding='utf-8', index=False)
-
-df = pd.read_csv('../out_files/cleaned_gov_members_data.csv', encoding='utf-8')
-
-# balanced = assert_balanced_events_for_each_role(df)
-# print('Are all events balanced in the dataset? ', balanced)
+balanced = assert_balanced_events_for_each_role(df)
+print('Are all events balanced in the dataset? ', balanced)
 
 final_list = []
 
 #change format of date e.g. from 2001-01-27 to 27/01/2001
-def format_date_column(date):
-    year, month, day = date.split('-')
-    new_date = day+'/'+month+'/'+year
-    return new_date
+df.date = df.date.dt.strftime('%d/%m/%Y')
 
-df['date'] = df['date'].apply(format_date_column)
 start_events = ['διορισμος', 'αρχη_κυβερνησης']
 end_events = ['παραιτηση', 'παυση', 'απεβιωσε', 'last_script_run',
               'τελος_κυβερνησης']
 
-
-# CREATE FILE FOR COMPARISON WITH MANUAL ROLES
 # match assignment and resignation dates for each role
-print(df.columns)
 for name, subdf in df.groupby(['cleaned_fullname','gov_date_from']):
 
-    subdf = subdf.sort_values(by='date', ascending=True)#.reset_index(drop=True) #,inplace=True
-    # if subdf.shape[0] != 2:
-    #     print(subdf)
-    #     print()
+    subdf = subdf.sort_values(by='date', ascending=True)
 
     for role in set(subdf.member_role.to_list()):
 
         role_subdf = subdf.loc[(subdf.member_role==role)]
-        assignment_date = role_subdf.loc[(role_subdf.event.isin(start_events)),'date'].values[0]#.replace('-', '/')
-        resignation_date = role_subdf.loc[(role_subdf.event.isin(end_events)),'date'].values[0]#.replace('-', '/')
+        assignment_date = role_subdf.loc[(role_subdf.event.isin(start_events)),'date'].values[0]
+        resignation_date = role_subdf.loc[(role_subdf.event.isin(end_events)),'date'].values[0]
 
         final_list.append([subdf.iloc[0].cleaned_fullname, role, assignment_date, resignation_date, subdf.iloc[0].gender])
 
-    # merge_list = []
-    # for index1, item_set1 in enumerate(final_list):
-    #     for index2, item_set2 in enumerate(merge_list):
-    #         print('2')
-    #         items1 = item_set1.pop(2)
-    #         items2 = item_set2.pop(2)
-    #         print(items1)
-    #         print(items2)
-    #         if items1 == items2:
-    #             merge_list[index2][2] = merge_list[index2][2]+', '+final_list[index1][2]
-    #         else:
-    #             print('1')
-    # print(subdf)
-    # break
-
-# print(subdf)
 final_df = pd.DataFrame(final_list, columns = ['member_name', 'role', 'role_start_date', 'role_end_date', 'gender'])
-# print(final_df)
 
-final_df.to_csv('../out_files/formatted_roles_gov_members_data.csv', encoding='utf-8',index=False)
-
-
-
-# # CREATE FILE FOR MEMBER_SPEECH_MATCHER
-#
-# activity_entries = []
-# # print(df.head())
-# for name, subdf in df.groupby(['cleaned_fullname','gov_date_from']):
-#     # print(subdf.iloc[0].cleaned_fullname)
-#     # time.sleep(100)
-#
-#     out_ranges = []
-#     subdf = subdf.sort_values(by='date', ascending=True)#.reset_index(drop=True) #,inplace=True
-#     if subdf.shape[0] != 2: # which means more than one roles usually
-#
-#         date_pairs = [] # list of lists with paired dates
-#
-#         # merge overlapping time periods for the same roles
-#         for role in set(subdf.member_role.to_list()):
-#
-#             role_subdf = subdf.loc[(subdf.member_role==role)]
-#             assignment_date = role_subdf.loc[(role_subdf.event.isin(start_events)),'date'].values[0]#.replace('-', '/')
-#             resignation_date = role_subdf.loc[(role_subdf.event.isin(end_events)),'date'].values[0]#.replace('-', '/')
-#             date_pairs.append(([assignment_date, resignation_date]))
-#
-#         out_ranges = [date_pairs[0]]
-#
-#         for pair in date_pairs[1:]:
-#
-#             if out_ranges[-1][1] >= pair[0]:
-#                 if out_ranges[-1][1] >= pair[1]: # end date is inside last range
-#                     pass
-#                 else:
-#                     out_ranges[-1][1] = pair[1] # the current end date is outside last range
-#
-#             else: # current range does not overlap with last range at all
-#                 out_ranges.append(pair)
-#
-#     else: # only one range available
-#         out_ranges = [subdf.date.to_list()] # sorted date column to list
-#
-#     # if subdf.shape[0] != 2:
-#     #     print('RESULT')
-#     #     print(out_ranges)
-#
-#     for index, range1 in enumerate(out_ranges):
-#         # print(range1)
-#         # print(out_ranges)
-#         activity_entries.append([subdf.iloc[0].cleaned_fullname,
-#                                  #pd.to_datetime(
-#                                   range1[0],
-#                                  # ), pd.to_datetime(
-#                                   range1[1]
-#                                  # )
-#                                  ,
-#                                  #subdf.iloc[0].party, #not needed anymore
-#                                  subdf.iloc[0].gender])
-#
-# activity_df = pd.DataFrame(data=activity_entries, columns = ['member_name', 'member_start_date', 'member_end_date', 'gender'])   # member_roles, gender
-# activity_df.to_csv('../out_files/members_activity_1989onwards_with_gender_ggk_data.csv', encoding='utf-8', index=False) #index=False
-# print(activity_df.columns)
+final_df.to_csv('../out_files/formatted_roles_gov_members_data.csv', encoding='utf-8', index=False)
