@@ -66,7 +66,7 @@ def tag_visible(element):
 
 def soup_to_list(soup):
 
-    texts = soup.find_all(text=True)#.find_all(text=True, recursive=True)
+    texts = soup.find_all(text=True)
     visible_texts = list(filter(tag_visible, texts))
 
     return[re.sub(r'\s{2,}', ' ', t) for t in visible_texts if t.strip()!='']
@@ -87,7 +87,7 @@ def df_from_gov_table(page_URL):
         row.append(tr.find('a').get('href'))
         rows_list.append(row)
 
-    df_govs = pd.DataFrame(columns = ['id', 'gov_name', 'date_from', 'date_to', 'gov_url'], data = rows_list)
+    df_govs = pd.DataFrame(columns=['id', 'gov_name', 'date_from', 'date_to', 'gov_url'], data=rows_list)
     df_govs = df_govs.drop(['id'], axis=1)
 
     df_govs.date_from = df_govs.date_from.apply(lambda x: toDatetime(x))
@@ -111,13 +111,14 @@ def text_formatting(text):
 
     return text
 
+
 def balanced_parenthesis(myStr):
     stack = []
     for char in myStr:
         if char == '(' or char == ')':
             stack.append(char)
-    open = [char for char in stack if char=='(']
-    close = [char for char in stack if char==')']
+    open = [char for char in stack if char == '(']
+    close = [char for char in stack if char == ')']
     if len(open) != len(close):
         return False
     else:
@@ -160,7 +161,7 @@ def correct_separation(content):
         else:
             new_item += c
 
-        if len(new_item)<=3:
+        if len(new_item) <= 3:
             continue
         else:
             merged_items.append(new_item)
@@ -173,7 +174,7 @@ def correct_separation(content):
 
         # Add whitespace if previous string ends with month
         if endswith_month_regex.search(c):
-            new_item +=c
+            new_item += c
             continue
         if endswith_month_regex.search(new_item):
             new_item += ' ' + c
@@ -185,7 +186,7 @@ def correct_separation(content):
     # Specific problem due to unneeded span tags in tds
     merged_roles = []
     for c in merged_dates:
-        if c == 'και ενεργειας' and merged_roles[-1]=='αναπληρωτη υπουργου παραγωγικης ανασυγκροτησης, περιβαλλοντος':
+        if c == 'και ενεργειας' and merged_roles[-1] == 'αναπληρωτη υπουργου παραγωγικης ανασυγκροτησης, περιβαλλοντος':
             merged_roles[-1] += ' '+c
         else:
             merged_roles.append(c)
@@ -254,6 +255,7 @@ def clean_up_soup(soup):
 
     return soup
 
+
 def assert_correct_roles(df):
     flag = True
     accepted_roles = ['υπουργ', 'υφυπου', 'πρωθυπ', 'αναπλη', 'αντιπρ']
@@ -272,14 +274,14 @@ def correct_interwined_entries(members, roles):
 
     m1, m2, r1, r2 = None, None, None, None
     if members == 'γεωργιου ζανιαγεωργιου βερνικου' \
-            and roles=='υπουργου οικονομικωνυφυπουργου ναυτιλιας':
+            and roles == 'υπουργου οικονομικωνυφυπουργου ναυτιλιας':
         m1 = 'γεωργιου ζανια'
         m2 = 'γεωργιου βερνικου'
         r1 = 'υπουργου οικονομικων'
         r2 = 'υφυπουργου ναυτιλιας'
 
     if members == 'συμεων κεδικογλου (του βασιλειου)κωνσταντινου τσιαρα' \
-            and roles=='υφυπουργου στον πρωθυπουργουφυπουργου εξωτερικων':
+            and roles == 'υφυπουργου στον πρωθυπουργουφυπουργου εξωτερικων':
         m1 = 'συμεων κεδικογλου(του βασιλειου)'
         m2 = 'κωνσταντινου τσιαρα'
         r1 = 'υφυπουργου στον πρωθυπουργο'
@@ -287,11 +289,12 @@ def correct_interwined_entries(members, roles):
 
     return m1, m2, r1, r2
 
-page_URL = 'http://www.ggk.gov.gr/?page_id=776&sort=time'
+page_URL = 'https://gslegal.gov.gr/?page_id=776&sort=time'
 df_govs = df_from_gov_table(page_URL)
 df_1989_onwards = df_govs[df_govs.date_to >= dt.strptime('1989-07-03', '%Y-%m-%d')]
 
 df_1989_onwards.to_csv('../out_files/governments_1989onwards.csv', header=True, index=False, encoding='utf-8')
+print('\nCreated file governments_1989onwards.csv\n')
 
 endswith_digits_regex = re.compile(r'\d+$')
 has_digit_regex = re.compile(r'\d+')
@@ -308,9 +311,9 @@ types = []
 rows_list = []
 
 for index, row in df_1989_onwards.iterrows():
-    print(row.gov_name)
+    print('Collecting data from government \"', row.gov_name, '\"')
 
-    html = requests.get(row.gov_url+'&print=1').text #.content -> response as bytes
+    html = requests.get(row.gov_url+'&print=1').text
     html = html.replace(u'\xa0', ' ')
     html = html.replace(u' ', ' ')
     soup = BeautifulSoup(html, "html.parser")
@@ -340,10 +343,11 @@ for index, row in df_1989_onwards.iterrows():
     last_event = ''
     for index, item in enumerate(content):
         if index not in added_indexes:
-            if any(string in item for string in [':','διορισμος', 'παραιτηση', 'παυση', 'απεβιωσε', 'αναπληρωση', 'αναπληρωσεις']):
+            if any(string in item for string
+                   in [':','διορισμος', 'παραιτηση', 'παυση', 'απεβιωσε', 'αναπληρωση', 'αναπληρωσεις']):
                 last_event = item
             else:
-                if last_event!='' and index!=len(content)-1:
+                if last_event != '' and index != len(content)-1:
                     name = content[index]
                     role = content[index+1]
                     # specific correction for george papandreou government
@@ -363,7 +367,8 @@ for index, row in df_1989_onwards.iterrows():
             member_name = name_role_pair[0]
             role = name_role_pair[1]
 
-            if member_name in ['γεωργιου ζανιαγεωργιου βερνικου', 'συμεων κεδικογλου (του βασιλειου)κωνσταντινου τσιαρα']:
+            if member_name in \
+                    ['γεωργιου ζανιαγεωργιου βερνικου', 'συμεων κεδικογλου (του βασιλειου)κωνσταντινου τσιαρα']:
 
                 # specific correction for mistakes in the data in samara's government
                 m1,m2,r1,r2 = correct_interwined_entries(member_name, role)
@@ -383,9 +388,9 @@ df = pd.DataFrame(data = rows_list, columns=['date', 'event', 'member_name',
 
 # check if roles are correct
 if not assert_correct_roles(df):
-    print('Not all entries comply with the proper role format.')
+    print('\nNot all entries comply with the proper role format.')
 else:
-    print('All entries have proper role format.')
+    print('\nAll entries have proper role format.')
 
-print(df.columns)
 df.to_csv('../out_files/original_gov_members_data.csv', header=True, index=False, encoding='utf-8')
+print('\nCreated file original_gov_members_data.csv')
