@@ -10,6 +10,11 @@ import pandas as pd
 import numpy as np
 import datetime
 from collections import Counter
+import time
+
+pd.set_option('display.max_rows', 5000)
+pd.set_option('display.max_columns', 5000)
+pd.set_option('display.width', 10000)
 
 
 def explode(df, column_to_split):
@@ -43,7 +48,6 @@ def explode(df, column_to_split):
     return res
 
 
-# ASSERTIONS
 def assert_filled_gender(df):
 
     for index, row in df.iterrows():
@@ -254,6 +258,7 @@ def correct_specific_roles(df, name, role_before, role_after, date, gov_date_fro
            & (df.member_role == role_before) \
            & (df.date == date) \
            & (df.gov_date_from == gov_date_from)
+
     df.loc[mask, 'member_role'] = role_after
 
     return df
@@ -269,6 +274,7 @@ def correct_specific_events(df, name, role, event_before, event_after, date, gov
     df.loc[mask, 'event'] = event_after
 
     return df
+
 
 def text_formatting(text):
 
@@ -382,21 +388,26 @@ def assert_balanced_events_for_each_role(df):
 df = pd.read_csv('../out_files/original_gov_members_data.csv', encoding='utf-8')
 df = name_formatting_dataframe(df)
 
-df[['member_first_name','member_last_name', 'nickname']] = df['member_name'].str.split(" ", expand=True).fillna(value=np.nan)
+df[['member_first_name','member_last_name', 'nickname']] = df['member_name'].\
+    str.split(" ", expand=True).fillna(value=np.nan)
 
 df = first_name_formatting(df)
 df['nickname'] = df['nickname'].str.replace(r'[\(\)]', '')
 df['gender'] = np.nan
 
 # CREATE TRIES FOR NAME SEARCH
+print('Creating tries for name search...')
+# Female surnames remain the same in all grammatical cases, so no trie is created for them
 male_name_trie = json_file_to_chartrie('../out_files/wiki_data/male_name_cases_populated.json')
 female_name_trie = json_file_to_chartrie('../out_files/wiki_data/female_name_cases_populated.json')
 male_surname_trie = json_file_to_chartrie('../out_files/wiki_data/male_surname_cases_populated.json')
 
 name_tries = {'male':male_name_trie, 'female':female_name_trie}
-surname_tries = {'male': male_surname_trie} # because female surnames don't change between cases
+surname_tries = {'male': male_surname_trie}
 
 # FIND NOMINATIVE CASE AND GENDER
+print('Searching for nominative cases and gender of member names...')
+
 # Create df because only on df (not series/column) you can apply a custom function that returns two variables
 first_name_gender_df = df['member_first_name'].to_frame().join(df['gender'])
 df[['member_first_name', 'gender']] = first_name_gender_df.apply(lambda x: find_nominative_and_gender(
@@ -419,7 +430,9 @@ df = specific_corrections(df)
 
 df['member_role'] = df['member_role'].apply(format_member_role)
 
-# specific corrections
+print('Making specific corrections in data...')
+
+# SPECIFIC CORRECTIONS
 #----------------
 # role corrections before "exploding" roles, due to mistaken data
 df = correct_specific_roles(df, 'τζαννης τζαννετακης', 'υπουργος εξωτερικων και τουρισμου',
@@ -435,11 +448,11 @@ df = correct_specific_roles(df, 'γιαννος παπαντωνιου', 'υπο
 #----------------
 
 # look ahead assertion in regex
-df['member_role'] = df['member_role'].str.split(r'\s(?=και υφυπουργ|και υπουργ|και αναπληρωτ|και πρωθυπουργ|και αντιπροεδρ)')
+df['member_role'] = df['member_role'].\
+    str.split(r'\s(?=και υφυπουργ|και υπουργ|και αναπληρωτ|και πρωθυπουργ|και αντιπροεδρ)')
 df = explode(df, 'member_role')
 df['member_role'] = df['member_role'].str.replace(r'^και\s', '')
 
-# specific corrections
 #----------------
 
 ''' missing rows
@@ -465,10 +478,13 @@ new_rows = [
      '2012-06-21','2015-01-26','σαμαρα κ. αντωνιου',
      'γεωργιος', 'ζανιας', np.nan, 'male',  'γεωργιος ζανιας']
 ]
-rows_df = pd.DataFrame(new_rows, columns = df.columns)
+
+rows_df = pd.DataFrame(new_rows, columns=df.columns)
 df = df.append(rows_df, ignore_index=True)
 
-# FIX CHANGE IN MEMBER ROLES BASED ON "Ν. 1943/1991" https://gslegal.gov.gr/?p=1304
+#----------------
+
+# Correct member roles based on a legal change by "Ν. 1943/1991" https://gslegal.gov.gr/?p=1304
 # string column to timestamp
 df['gov_date_from']= pd.to_datetime(df['gov_date_from'])
 df['date']= pd.to_datetime(df['date'])
@@ -477,7 +493,7 @@ gov_date_from = datetime.datetime.strptime('1990-04-11', '%Y-%m-%d')
 event_date = datetime.datetime.strptime('1991-04-11', '%Y-%m-%d')
 
 ministers_without_portfolio_1990 = df.loc[
-    (df.gov_date_from == gov_date_from) & (df.member_role=='υπουργος χωρις χαρτοφυλακιο')].copy()
+    (df.gov_date_from == gov_date_from) & (df.member_role == 'υπουργος χωρις χαρτοφυλακιο')].copy()
 
 for name, subdf in ministers_without_portfolio_1990.groupby(['cleaned_fullname']):
     if subdf.shape[0] == 1 and subdf['event'].iloc[0] == 'διορισμος':
@@ -493,6 +509,8 @@ for name, subdf in ministers_without_portfolio_1990.groupby(['cleaned_fullname']
     else:
         print('Error in minsters without portfolio in 1990.')
 
+#----------------
+
 # event corrections due to mistaken data
 df = correct_specific_events(df, 'γεωργιος κουμουτσακος', 'αναπληρωτης υπουργος μεταναστευσης και ασυλου',
                              'παραιτηση', 'διορισμος', '2020-01-15', '2019-07-08')
@@ -500,6 +518,8 @@ df = correct_specific_events(df, 'παναγιωτης μηταρακης', 'υ�
                              'παραιτηση', 'διορισμος', '2020-01-15', '2019-07-08')
 df = correct_specific_events(df, 'κωνσταντινος κουκοδημος', 'υφυπουργος παιδειας και θρησκευματων',
                              'διορισμος', 'παραιτηση', '2014-09-02', '2012-06-21')
+
+#----------------
 
 # corrections/changes due to renaming of ministries during a term of office
 # keeping the first name of the ministry
@@ -521,6 +541,10 @@ df = correct_specific_roles(df, 'δημητριος αβραμοπουλος', '
 df = correct_specific_roles(df, 'δημητριος στρατουλης', 'αναπληρωτης υπουργος υγειας',
                         'αναπληρωτης υπουργος υγειας και κοινωνικων ασφαλισεων','2015-03-21', '2015-01-26')
 
+df = correct_specific_roles(df, 'δημητριος στρατουλης', 'αναπληρωτης υπουργος εργασιας κοινωνικης ασφαλισης',
+                        'αναπληρωτης υπουργος εργασιας κοινωνικης ασφαλισης και κοινωνικης αλληλεγγυης',
+                            '2015-03-21', '2015-01-26')
+
 df = correct_specific_roles(df, 'θεανω φωτιου', 'αναπληρωτης υπουργος εργασιας κοινωνικης ασφαλισης και κοινωνικης αλληλεγγυης',
                         'αναπληρωτης υπουργος εργασιας και κοινωνικης αλληλεγγυης','2015-08-27', '2015-01-26')
 
@@ -536,13 +560,23 @@ df = correct_specific_roles(df, 'παναγιωτης σκουρλετης', 'υ
 df = correct_specific_roles(df, 'παναγιωτης κουρουμπλης', 'υπουργος υγειας',
                        'υπουργος υγειας και κοινωνικων ασφαλισεων','2015-08-27', '2015-01-26')
 
+df = correct_specific_roles(df, 'κωνσταντινος μουσουρουλης', 'υπουργος ναυτιλιας και αιγαιου',
+                       'υπουργος ναυτιλιας','2013-06-25', '2012-06-21')
+
+df = correct_specific_roles(df, 'νικολαος χριστοδουλακης', 'υπουργος οικονομιας και οικονομικων',
+                       'υπουργος εθνικης οικονομιας και οικονομικων','2004-03-10', '2000-04-13')
+
+df = correct_specific_roles(df, 'ουρανια αντωνοπουλου',
+                            'αναπληρωτης υπουργος εργασιας κοινωνικης ασφαλισης και κοινωνικης αλληλεγγυης',
+                            'αναπληρωτης υπουργος εργασιας και κοινωνικης αλληλεγγυης','2015-08-27', '2015-01-26')
+
 #----------------
 
 assert_filled_gender(df)
 df.drop_duplicates(inplace=True)
 df['gov_date_to'] = pd.to_datetime(df['gov_date_to'])
 
-# FIX LAST GOVERNMENT ROLE ENDING DATES
+# Correct last government's role ending dates
 last_gov_events = df.loc[(df.gov_date_from == df.gov_date_from.max())].copy()
 for name, subdf in last_gov_events.groupby(['cleaned_fullname', 'member_role']):
     if subdf.shape[0] == 1 and subdf['event'].iloc[0] == 'διορισμος':
@@ -552,28 +586,14 @@ for name, subdf in last_gov_events.groupby(['cleaned_fullname', 'member_role']):
         copy['date'].iat[0] = copy['gov_date_to'].iat[0]
         df = pd.concat([df, copy], ignore_index=True)
 
-for name, subdf in df.groupby(['cleaned_fullname', 'gov_date_from']):
-    freqs = Counter(subdf['member_role'].to_list())
-    odd_roles = [role for role in freqs.keys() if freqs[role] == 1]
-    if len(odd_roles) == 2:
-        matched_events = subdf.loc[(subdf['member_role'].isin(odd_roles))]
-        matched_events = matched_events.sort_values(by='date', ascending=True)
-        indexes = matched_events.index
+#----------------
 
-        # for the index of resignation, change the role to that of the appointment
-        df.loc[(df.index==indexes[1]) & (df.event=='παραιτηση'),'member_role'] = \
-            df.loc[(df.index==indexes[0]) & (df.event=='διορισμος'),'member_role'].values[0]
-
-    elif len(odd_roles) != 2 and len(odd_roles) != 0:
-        print('Problem with data for name ' + name)
-
-# group by cleaned_fullname gov_date_from balanced events
+# group by cleaned_fullname, gov_date_from balanced events
 df['date']= pd.to_datetime(df['date'])
 df = df.sort_values(by='date', ascending=True)
 df.drop_duplicates(inplace=True)
 
 balanced = assert_balanced_events_for_each_role(df)
-print('Are all events balanced in the dataset? ', balanced)
 
 final_list = []
 
@@ -600,3 +620,4 @@ for name, subdf in df.groupby(['cleaned_fullname','gov_date_from']):
 final_df = pd.DataFrame(final_list, columns = ['member_name', 'role', 'role_start_date', 'role_end_date', 'gender'])
 
 final_df.to_csv('../out_files/formatted_roles_gov_members_data.csv', encoding='utf-8', index=False)
+print('\nCreated file formatted_roles_gov_members_data.csv with columns ', str(final_df.columns))
