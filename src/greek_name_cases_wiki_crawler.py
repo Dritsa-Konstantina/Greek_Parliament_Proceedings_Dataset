@@ -191,7 +191,7 @@ for dirpath, list in dirs_urls_dict.items():
     dict_500 = {}
     crawl_names(dict_500, domain_URL, page_url, c, listing_category)
 
-    #sort by creation time
+    # sort by creation time
     file_paths = sorted(Path(dirpath).iterdir(), key=os.path.getctime)
 
     ultimate_dict = concat_json_files(file_paths)
