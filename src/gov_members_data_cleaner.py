@@ -1,6 +1,3 @@
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
 import json
 import pygtrie
 import math
@@ -9,12 +6,6 @@ import codecs
 import pandas as pd
 import numpy as np
 import datetime
-from collections import Counter
-import time
-
-pd.set_option('display.max_rows', 5000)
-pd.set_option('display.max_columns', 5000)
-pd.set_option('display.width', 10000)
 
 
 def explode(df, column_to_split):
@@ -264,7 +255,8 @@ def correct_specific_roles(df, name, role_before, role_after, date, gov_date_fro
     return df
 
 
-def correct_specific_events(df, name, role, event_before, event_after, date, gov_date_from):
+def correct_specific_events(df, name, role, event_before, event_after, date,
+                            gov_date_from):
 
     mask = (df.cleaned_fullname == name) \
            & (df.event == event_before) \
