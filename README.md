@@ -2,11 +2,11 @@
 
 Script order:
 
-__Record Collection and Cleaning:__
-1. web_crawler_for_proceeding_files.py: Download record files from https://www.hellenicparliament.gr/Praktika/Synedriaseis-Olomeleias and change the file name to "recordDate_id_periodNo_sessionNo_sittingNo.ext" 
-2. convert2txt.py: Convert all types of downloaded record files (pdf, doc, docx) to text format with the use of tika-app-1.20.jar and rename the converted files from Greek to English.
+__Record Collection and Cleaning:__\
+1.web_crawler_for_proceeding_files.py: Download record files from https://www.hellenicparliament.gr/Praktika/Synedriaseis-Olomeleias and change the file name to "recordDate_id_periodNo_sessionNo_sittingNo.ext"\ 
+2.convert2txt.py: Convert all types of downloaded record files (pdf, doc, docx) to text format with the use of tika-app-1.20.jar and rename the converted files from Greek to English.\
 
-__Parliament Members Data Collection and Cleaning:__
+__Parliament Members Data Collection and Cleaning:__\
 3. web_crawler_for_parliament_members.py: Download information of the Parliament Members from the dropdown list at https://www.hellenicparliament.gr/Vouleftes/Diatelesantes-Vouleftes-Apo-Ti-Metapolitefsi-Os-Simera/. Create a file original_parl_members_data.csv
 4. parl_members_data_cleaner.py: Clean and format the file original_parl_members_data.csv. Create a new file parl_members_activity_1989onwards.csv
 5. onomatologio_crawler.py: Crawls the website https://www.onomatologio.gr/%CE%9F%CE%BD%CF%8C%CE%BC%CE%B1%CF%84%CE%B1 and collects Greek first names and their alternatives. It outputs the files 1) male_names_alternatives_gr.txt (with male names and their alternatives), 2) female_names_alternatives_gr.txt (with female names and their alternatives) and 3) greek_names_alts_only.txt (only with female and male names that have alternatives).
