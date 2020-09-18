@@ -1,19 +1,19 @@
 # Greek_Parliament_proceedings_dataset
 
-####Script order:
+#### Script order:
 
-######Record Collection and Cleaning:
+###### Record Collection and Cleaning:
 
-__web_crawler_for_proceeding_files.py:__ Download record files from https://www.hellenicparliament.gr/Praktika/Synedriaseis-Olomeleias and change the file name to "recordDate_id_periodNo_sessionNo_sittingNo.ext" 
-__convert2txt.py:__ Convert all types of downloaded record files (pdf, doc, docx) to text format with the use of tika-app-1.20.jar and rename the converted files from Greek to English.
+1. __web_crawler_for_proceeding_files.py:__ Download record files from https://www.hellenicparliament.gr/Praktika/Synedriaseis-Olomeleias and change the file name to "recordDate_id_periodNo_sessionNo_sittingNo.ext" 
+1. __convert2txt.py:__ Convert all types of downloaded record files (pdf, doc, docx) to text format with the use of tika-app-1.20.jar and rename the converted files from Greek to English.
 
-######Parliament Members Data Collection and Cleaning:
-__web_crawler_for_parliament_members.py:__ Download information of the Parliament Members from the dropdown list at https://www.hellenicparliament.gr/Vouleftes/Diatelesantes-Vouleftes-Apo-Ti-Metapolitefsi-Os-Simera/. Create a file original_parl_members_data.csv 
-__parl_members_data_cleaner.py:__ Clean and format the file original_parl_members_data.csv. Create a new file parl_members_activity_1989onwards.csv
-__onomatologio_crawler.py:__ Crawls the website https://www.onomatologio.gr/%CE%9F%CE%BD%CF%8C%CE%BC%CE%B1%CF%84%CE%B1 and collects Greek first names and their alternatives. It outputs the files 1) male_names_alternatives_gr.txt (with male names and their alternatives), 2) female_names_alternatives_gr.txt (with female names and their alternatives) and 3) greek_names_alts_only.txt (only with female and male names that have alternatives).
-__add_gender_to_members.py:__ Add gender column to the parl_members_activity_1989onwards.csv with the use of the files "female_names_alternatives_gr.txt" and "male_names_alternatives_gr.txt" and create the file "parl_members_activity_1989onwards_with_gender.csv"
+###### Parliament Members Data Collection and Cleaning:
+3. __web_crawler_for_parliament_members.py:__ Download information of the Parliament Members from the dropdown list at https://www.hellenicparliament.gr/Vouleftes/Diatelesantes-Vouleftes-Apo-Ti-Metapolitefsi-Os-Simera/. Create a file original_parl_members_data.csv 
+1. __parl_members_data_cleaner.py:__ Clean and format the file original_parl_members_data.csv. Create a new file parl_members_activity_1989onwards.csv
+1. __onomatologio_crawler.py:__ Crawls the website https://www.onomatologio.gr/%CE%9F%CE%BD%CF%8C%CE%BC%CE%B1%CF%84%CE%B1 and collects Greek first names and their alternatives. It outputs the files 1) male_names_alternatives_gr.txt (with male names and their alternatives), 2) female_names_alternatives_gr.txt (with female names and their alternatives) and 3) greek_names_alts_only.txt (only with female and male names that have alternatives).
+1. __add_gender_to_members.py:__ Add gender column to the parl_members_activity_1989onwards.csv with the use of the files "female_names_alternatives_gr.txt" and "male_names_alternatives_gr.txt" and create the file "parl_members_activity_1989onwards_with_gender.csv"
 
-######Government Members Data Collection and Cleaning:
+###### Government Members Data Collection and Cleaning:
 
 __greek_name_cases_wiki_crawler.py:__ Crawls the wiktionary lists of modern Greek female/male names/surnames and additionally collects all the grammatical cases, when available in tables within each entry page. The output consists of 4 json files, namely female_name_cases.json, male_name_cases.json, female_surname_cases.json, male_surname_cases.json.
 __produce_cases_from_nominative.py:__ Takes as input the json files produced from the script greek_name_cases_wiki_crawler.py and produces the missing grammatical cases based on the nominative case. It produces 4 json files, namely female_name_cases_populated.json, male_name_cases_populated.json, female_surname_cases_populated.json, male_surname_cases_populated.json.
