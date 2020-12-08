@@ -4,17 +4,17 @@ This [dataset](https://zenodo.org/record/4311577#.X8-yMdgzaUk) is produced on be
 This dataset is the next version of a [previous upload](https://zenodo.org/record/2587904#.X8-jl9gzaUk), which originated from the work implemented during the course of the Master thesis entitled "[Speech quality and sentiment analysis on the Hellenic Parliament proceedings](http://www.pyxida.aueb.gr/index.php?op=view_object&object_id=6387)" at the Athens University of Economics & Business in 2018 under the supervision of the Associate Professor Panagiotis Louridas.
 
 This dataset includes 1,280,918 speeches (rows) of Greek parliament members with a total volume of 2.30 GB, that were exported from 5,355 parliamentary sitting record files. They extend chronologically from early July 1989 up to late July 2020. The dataset consists of a .csv file in UTF-8 encoding and includes the following columns of data:
--member_name: the official name of the parliament member who talked during a sitting.
--sitting_date: the date that the sitting took place.
--parliamentary_period: the name and/or number of the parliamentary period that the speech took place in. A parliamentary period includes multiple parliamentary sessions.
--parliamentary_session: the name and/or number of the parliamentary session that the speech took place in. A parliamentary session includes multiple parliamentary sittings.
--parliamentary_sitting: the name and/or number of the parliamentary sitting that the speech took place in.
--political_party: the political party that the speaker belonged to the moment of their speech.
--government: the government in force when the speech took place.
--member_region: the electoral district the speaker belonged to.
--roles: information about the parliamentary roles and/or government position of the speaker the moment of their speech.
--member_gender: the sex of the speaker
--speech: the speech that the member made during the parliamentary sitting
+- member_name: the official name of the parliament member who talked during a sitting.
+- sitting_date: the date that the sitting took place.
+- parliamentary_period: the name and/or number of the parliamentary period that the speech took place in. A parliamentary period includes multiple parliamentary sessions.
+- parliamentary_session: the name and/or number of the parliamentary session that the speech took place in. A parliamentary session includes multiple parliamentary sittings.
+- parliamentary_sitting: the name and/or number of the parliamentary sitting that the speech took place in.
+- political_party: the political party that the speaker belonged to the moment of their speech.
+- government: the government in force when the speech took place.
+- member_region: the electoral district the speaker belonged to.
+- roles: information about the parliamentary roles and/or government position of the speaker the moment of their speech.
+- member_gender: the sex of the speaker
+- speech: the speech that the member made during the parliamentary sitting
 
 The methodology followed for the production of this dataset is described in the iMEdD Lab's article entitled "[The creation of a dataset with the parliament proceedings within 31 years](https://devlab.imedd.org/i-dimiourgia-tou-dataset-me-ta-koinovouleftika-praktika/)". 
 
